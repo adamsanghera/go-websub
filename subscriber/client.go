@@ -54,15 +54,13 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 	return hubs
 }
 
-// SubscribeToTopic pings the
+// SubscribeToTopic pings the topic
 func (sc *Client) SubscribeToTopic(topic string) {
 	for _, postURL := range sc.topicsToSelf {
 		data := make(url.Values)
 		data.Set("hub.callback", sc.callback)
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", postURL)
-
-		log.Printf("Pinging %v\n", postURL)
 
 		req, _ := http.NewRequest("POST", postURL, strings.NewReader(data.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
