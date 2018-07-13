@@ -44,4 +44,9 @@ func TestDiscoverTopic(t *testing.T) {
 			t.Error("Failed to parse self link")
 		}
 	})
+
+	/*
+		TODO(adam) add tests that have protocol-breaking responses,
+		and verify that our protocol doesn't parse them
+	*/
 }
