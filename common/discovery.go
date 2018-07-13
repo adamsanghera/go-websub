@@ -2,7 +2,6 @@ package common
 
 import (
 	"io"
-	"log"
 	"net/http"
 	"strings"
 
@@ -66,6 +65,7 @@ func parseFromHeader(header http.Header) (hubURLs map[string]struct{}, selfURL s
 }
 
 // Parse links from the body of an http reply, assumes that the body is in html
+// TODO(adam) make this code much more legible
 func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, selfURL string) {
 	tokenizer := html.NewTokenizer(htmlReader)
 
@@ -142,8 +142,6 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 			break
 		}
 	}
-
-	log.Printf("Found: {%v} {%v}", hubURLs, selfURL)
 
 	return hubURLs, selfURL
 }
