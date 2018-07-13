@@ -84,6 +84,9 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 				if string(tn) == "head" {
 					inHead = true
 				} else if inHead && string(tn) == "link" {
+					// We've found a link tag, now we need to validate that it has the following components:
+					// 1. rel, which is one of (a) hub or (b) self
+					// 2. href, which is a valid url
 					relFound := false
 					hrefFound := false
 					isHub := true
