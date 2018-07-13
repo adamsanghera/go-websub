@@ -21,19 +21,11 @@ func DiscoverTopic(topic string) (map[string]struct{}, string) {
 		panic(err)
 	}
 
-	log.Printf("Sending a discovery request to %s\n", topic)
-
 	// Make the request
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		panic(err)
 	}
-
-	// At this point, we have to choose from a few ways of extracting links
-	// [1] From header (must check this always)
-	// [2] From body in html, json, xml, etc (only check if header is missing links)
-
-	log.Printf("Parsing discovery response from %s\n", topic)
 
 	contentType := resp.Header.Get("Content-Type")
 
@@ -45,6 +37,7 @@ func DiscoverTopic(topic string) (map[string]struct{}, string) {
 		}
 	}
 
+	// If the goods weren't in the header, go deeper
 	if strings.Contains(contentType, "text/html") {
 		return parseLinksFromHTML(resp.Body)
 	} else if strings.Contains(contentType, "text/xml") {
@@ -60,15 +53,11 @@ func parseFromHeader(header http.Header) (hubURLs map[string]struct{}, selfURL s
 	hubURLs = make(map[string]struct{})
 	group := link.ParseHeader(header)
 
-	log.Printf("Recvd header {%v}", header)
-
 	for _, link := range group {
 		switch link.Rel {
 		case "self":
-			log.Printf("Found self link {%v}", link.URI)
 			selfURL = link.URI
 		case "hub":
-			log.Printf("Found hub link {%v}", link.URI)
 			hubURLs[link.URI] = struct{}{}
 		}
 	}
