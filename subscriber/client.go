@@ -56,13 +56,16 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 
 // SubscribeToTopic pings the topic
 func (sc *Client) SubscribeToTopic(topic string) {
-	for _, postURL := range sc.topicsToSelf {
+	if topicURL, ok := sc.topicsToSelf[topic]; ok {
+
+		// Prepare the body
 		data := make(url.Values)
 		data.Set("hub.callback", sc.callback)
 		data.Set("hub.mode", "subscribe")
-		data.Set("hub.topic", postURL)
+		data.Set("hub.topic", topicURL)
 
-		req, _ := http.NewRequest("POST", postURL, strings.NewReader(data.Encode()))
+		// Form the request
+		req, _ := http.NewRequest("POST", topicURL, strings.NewReader(data.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
 
@@ -76,6 +79,8 @@ func (sc *Client) SubscribeToTopic(topic string) {
 
 		log.Printf("Response received with resp {%s}, header {%v}, code {%v}",
 			s, resp.Header, resp.StatusCode)
+
+		// TODO(adam) process response
 	}
 }
 
