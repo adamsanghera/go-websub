@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adamsanghera/go-websub/common"
+	"github.com/adamsanghera/go-websub/internal/discovery"
 )
 
 /*
@@ -86,7 +86,7 @@ func (sc *Client) SubscribeToTopic(topic string) {
 
 // DiscoverTopic runs the common discovery algorithm, and compiles its results into the client map
 func (sc *Client) DiscoverTopic(topic string) {
-	hubs, self := common.DiscoverTopic(topic)
+	hubs, self := discovery.DiscoverTopic(topic)
 
 	// Allocate the map if necessary
 	if _, ok := sc.topicsToHubs[topic]; !ok {
