@@ -1,7 +1,7 @@
 package subscriber
 
 import (
-	"bufio"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -75,12 +75,23 @@ func (sc *Client) SubscribeToTopic(topic string) {
 			panic(err)
 		}
 
-		s, _ := bufio.NewReader(resp.Body).ReadString(byte('\t'))
+		// Process the response, including any redirects or errors
+		if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
+			switch resp.StatusCode {
+			case 202:
+				log.Printf("Successful subscription request")
+			case 307:
+				log.Printf("Temporary redirect response, trying new address...")
+				sc.SubscribeToTopic(resp.Header.Get("Location"))
+			case 308:
+				log.Printf("Permanent redirect response, trying new address...")
+				sc.SubscribeToTopic(resp.Header.Get("Location"))
+			default:
+				log.Printf("Error in making subscription.  Code {%d}, Header{%v}, Details {%s}",
+					resp.StatusCode, resp.Header, respBody)
+			}
 
-		log.Printf("Response received with resp {%s}, header {%v}, code {%v}",
-			s, resp.Header, resp.StatusCode)
-
-		// TODO(adam) process response
+		}
 	}
 }
 
