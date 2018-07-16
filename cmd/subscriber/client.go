@@ -1,6 +1,8 @@
 package subscriber
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -55,7 +57,7 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 }
 
 // SubscribeToTopic pings the topic
-func (sc *Client) SubscribeToTopic(topic string) {
+func (sc *Client) SubscribeToTopic(topic string) error {
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
 		// Prepare the body
@@ -80,19 +82,22 @@ func (sc *Client) SubscribeToTopic(topic string) {
 			switch resp.StatusCode {
 			case 202:
 				log.Printf("Successful subscription request")
+				return nil
 			case 307:
 				log.Printf("Temporary redirect response, trying new address...")
-				sc.SubscribeToTopic(resp.Header.Get("Location"))
+				return sc.SubscribeToTopic(resp.Header.Get("Location"))
 			case 308:
 				log.Printf("Permanent redirect response, trying new address...")
-				sc.SubscribeToTopic(resp.Header.Get("Location"))
+				return sc.SubscribeToTopic(resp.Header.Get("Location"))
 			default:
-				log.Printf("Error in making subscription.  Code {%d}, Header{%v}, Details {%s}",
+				return fmt.Errorf("Error in making subscription.  Code {%d}, Header{%v}, Details {%s}",
 					resp.StatusCode, resp.Header, respBody)
 			}
-
+		} else {
+			return err
 		}
 	}
+	return errors.New("No URL known for the given topic")
 }
 
 // DiscoverTopic runs the common discovery algorithm, and compiles its results into the client map
