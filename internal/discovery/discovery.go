@@ -1,4 +1,4 @@
-package common
+package discovery
 
 import (
 	"io"
