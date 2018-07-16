@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xml-stylesheet type="text/xsl" href="https://websub.rocks/assets/atom.xsl" ?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>WebSub Rocks! Atom Feed Discovery</title>
+  <link href="https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG" rel="self" type="application/atom+xml" />
+  <link href="https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG/hub" rel="hub" />
+  <id>https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG</id>
+  <publishUrl>https://websub.rocks/subscriber/102/wYDS1Km3NAmQozX7XnoG/publish</publishUrl>
+  <updated>2018-07-16T23:02:50+00:00</updated>
+  
+  <subtitle>This Atom feed has a stylesheet that will make it look like the websub.rocks site. If you are seeing this message, your browser doesn't support XSLT. To add a new post to this feed, follow this link https://websub.rocks/subscriber/102/wYDS1Km3NAmQozX7XnoG/publish</subtitle>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-0</id>
+    <title></title>
+    <published>2018-07-16T23:02:50+00:00</published>
+    <content type="html"><![CDATA[Thought is the sculptor who can create the person you want to be.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-0" />
+    <author>
+      <name>Henry Thoreau</name>
+    </author>
+  </entry>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-1</id>
+    <title></title>
+    <published>2018-07-16T23:02:50+00:00</published>
+    <content type="html"><![CDATA[Be what you are. This is the first step toward becoming better than you are.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-1" />
+    <author>
+      <name>Julius Charles Hare</name>
+    </author>
+  </entry>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-2</id>
+    <title></title>
+    <published>2018-07-16T23:02:50+00:00</published>
+    <content type="html"><![CDATA[Know, first, who you are, and then adorn yourself accordingly.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/102/wYDS1Km3NAmQozX7XnoG#quote-2" />
+    <author>
+      <name>Epictetus </name>
+    </author>
+  </entry>
+
+  </feed>

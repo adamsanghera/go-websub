@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xml-stylesheet type="text/xsl" href="https://websub.rocks/assets/rss.xsl" ?>
+<rss version="2.0"
+  xmlns:content="http://purl.org/rss/1.0/modules/content/"
+  xmlns:atom="http://www.w3.org/2005/Atom"
+  >
+<channel>
+  <title>WebSub Rocks! RSS Feed Discovery</title>
+  <atom:link href="https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78" rel="self" type="application/rss+xml" />
+  <atom:link href="https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78/hub" rel="hub" />
+  <link>https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78</link>
+  <publishUrl>https://websub.rocks/subscriber/103/HiQLr1bdrRZABYNEJh78/publish</publishUrl>
+  <lastBuildDate>Mon, 16 Jul 2018 23:03:17 +0000</lastBuildDate>
+  <language>en-US</language>
+  
+  <description>This RSS feed has a stylesheet that will make it look like the websub.rocks site. If you are seeing this message, your browser doesn't support XSLT. To add a new post to this feed, follow this link https://websub.rocks/subscriber/103/HiQLr1bdrRZABYNEJh78/publish</description>
+
+  
+    <item>
+      <title></title>
+      <pubDate>Mon, 16 Jul 2018 23:03:17 +0000</pubDate>
+      <guid isPermaLink="true">https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-0</guid>
+      <description><![CDATA[Practice safe design: Use a concept.]]></description>
+      <link>https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-0</link>
+      <author>Petrula Vrontikis</author>
+    </item>
+    
+  
+    <item>
+      <title></title>
+      <pubDate>Mon, 16 Jul 2018 23:03:17 +0000</pubDate>
+      <guid isPermaLink="true">https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-1</guid>
+      <description><![CDATA[The wisest men follow their own direction.]]></description>
+      <link>https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-1</link>
+      <author>Euripides</author>
+    </item>
+    
+  
+    <item>
+      <title></title>
+      <pubDate>Mon, 16 Jul 2018 23:03:17 +0000</pubDate>
+      <guid isPermaLink="true">https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-2</guid>
+      <description><![CDATA[All men have a sweetness in their life. That is what helps them go on. It is towards that they turn when they feel too worn out.]]></description>
+      <link>https://websub.rocks/blog/103/HiQLr1bdrRZABYNEJh78#quote-2</link>
+      <author>Albert Camus</author>
+    </item>
+    
+  </channel>
+</rss>

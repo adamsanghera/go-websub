@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<?xml-stylesheet type="text/xsl" href="https://websub.rocks/assets/atom.xsl" ?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>WebSub Rocks! Discovery Priority</title>
+  <link href="https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0" rel="self" type="application/atom+xml" />
+  <link href="https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0/hub?error=wrongtag" rel="hub" />
+  <id>https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0</id>
+  <publishUrl>https://websub.rocks/subscriber/104/bN1xyBZGKz9pkdsJj5E0/publish</publishUrl>
+  <updated>2018-07-16T23:03:49+00:00</updated>
+  
+  <subtitle>This Atom feed has a stylesheet that will make it look like the websub.rocks site. If you are seeing this message, your browser doesn't support XSLT. To add a new post to this feed, follow this link https://websub.rocks/subscriber/104/bN1xyBZGKz9pkdsJj5E0/publish</subtitle>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-0</id>
+    <title></title>
+    <published>2018-07-16T23:03:49+00:00</published>
+    <content type="html"><![CDATA[I have always thought the actions of men the best interpreters of their thoughts.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-0" />
+    <author>
+      <name>John Locke</name>
+    </author>
+  </entry>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-1</id>
+    <title></title>
+    <published>2018-07-16T23:03:49+00:00</published>
+    <content type="html"><![CDATA[Those who dream by day are cognizant of many things which escape those who dream only by night.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-1" />
+    <author>
+      <name>Edgar Allan Poe</name>
+    </author>
+  </entry>
+
+  
+  <entry>
+    <id>https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-2</id>
+    <title></title>
+    <published>2018-07-16T23:03:49+00:00</published>
+    <content type="html"><![CDATA[For me, discomfort is a signal of an exceptional concept. When I&#8217;m totally comfortable with a concept, I&#8217;ve probably used it fore or seen it somewhere else. Discomfort is almost a prerequisite for a great idea.]]></content>
+    <link rel="alternate" type="text/html" href="https://websub.rocks/blog/104/bN1xyBZGKz9pkdsJj5E0#quote-2" />
+    <author>
+      <name>Craig Frazier</name>
+    </author>
+  </entry>
+
+  </feed>
