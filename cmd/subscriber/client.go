@@ -33,6 +33,8 @@ type Client struct {
 	callback     string
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
+
+	subscribedTopicURLs map[string]map[string]struct{}
 }
 
 // NewClient creates and returns a new subscription client
@@ -42,6 +44,8 @@ func NewClient(callback string) *Client {
 		callback:     callback,
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
+
+		subscribedTopicURLs: make(map[string]map[string]struct{}),
 	}
 }
 
@@ -56,7 +60,10 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 	return hubs
 }
 
-// SubscribeToTopic pings the topic
+// SubscribeToTopic pings the topic url associated with a topic.
+// If that topic has no associated, returns an error
+// Handles redirect responses (307 and 308) gracefully
+// Passes any errors up, gracefully
 func (sc *Client) SubscribeToTopic(topic string) error {
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
@@ -81,7 +88,11 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 		if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
 			switch resp.StatusCode {
 			case 202:
-				log.Printf("Successful subscription request")
+				log.Printf("Successfully subscribed to topic %s on url %s, pending validation", topic, topicURL)
+				if _, ok := sc.subscribedTopicURLs[topic]; !ok {
+					sc.subscribedTopicURLs[topic] = make(map[string]struct{})
+				}
+				sc.subscribedTopicURLs[topic][topicURL] = struct{}{}
 				return nil
 			case 307:
 				log.Printf("Temporary redirect response, trying new address...")
