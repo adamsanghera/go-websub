@@ -79,51 +79,36 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 
 		// We're looking for links embedded in heads
 		case html.StartTagToken:
-			tn, _ := tokenizer.TagName()
-			if len(tn) == 4 {
-				if string(tn) == "head" {
-					inHead = true
-				} else if inHead && string(tn) == "link" {
-					// We've found a link tag, now we need to validate that it has the following components:
-					// 1. rel, which is one of (a) hub or (b) self
-					// 2. href, which is a valid url
-					relFound := false
-					hrefFound := false
-					isHub := true
-					href := ""
-
-					k, val, more := tokenizer.TagAttr()
-
-					switch string(k) {
-					case "rel":
-						isHub = string(val) == "hub"
-					case "href":
-						href = string(val)
-					}
-
-					relFound = relFound || string(k) == "rel"
-					hrefFound = hrefFound || string(k) == "href"
-
-					for more {
-						k, val, more = tokenizer.TagAttr()
-						switch string(k) {
-						case "rel":
-							isHub = string(val) == "hub"
-						case "href":
-							href = string(val)
+			t := tokenizer.Token()
+			if t.Data == "head" {
+				inHead = true
+			} else if t.Data == "link" && inHead {
+				// We've found a link tag, now we need to validate that it has the following components:
+				// 1. rel, which is one of (a) hub or (b) self
+				// 2. href, which is a valid url
+				var href string
+				isHub := false
+				isSelf := false
+				for _, a := range t.Attr {
+					if a.Key == "rel" {
+						isHub = a.Val == "hub"
+						isSelf = a.Val == "self"
+						if !(isHub || isSelf) {
+							break
 						}
-					}
-
-					if href != "" {
-						if isHub {
-							hubURLs[href] = struct{}{}
-						} else {
-							selfURL = href
-						}
+					} else if a.Key == "href" {
+						href = a.Val
 					}
 				}
-			}
+				if isHub || isSelf && len(href) != 0 {
+					if isHub {
+						hubURLs[href] = struct{}{}
+					} else {
+						selfURL = href
+					}
+				}
 
+			}
 		// Stop parsing once we exit the head
 		case html.EndTagToken:
 			tn, _ := tokenizer.TagName()
@@ -138,7 +123,6 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 					break
 				}
 			}
-
 		// Obviously, stop parsing if we hit an error token
 		case html.ErrorToken:
 			parsing = false
