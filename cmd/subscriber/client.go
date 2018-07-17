@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
@@ -30,23 +31,37 @@ import (
 
 // Client subscribes to topic hubs, following the websub protocol
 type Client struct {
+	port         string
 	callback     string
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
 
-	subscribedTopicURLs map[string]map[string]struct{}
+	pendingSubs   map[string]struct{} // perhaps point to a boolean sticky/not-sticky?
+	pendingUnSubs map[string]struct{}
+	activeSubs    map[string]struct{}
 }
 
 // NewClient creates and returns a new subscription client
 // Callback needs to be formatted like http{s}://website.domain:{port}/endpoint
-func NewClient(callback string) *Client {
-	return &Client{
+func NewClient(callback string, port string) *Client {
+	// Create the client
+	c := &Client{
 		callback:     callback,
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
 
 		subscribedTopicURLs: make(map[string]map[string]struct{}),
 	}
+
+	// Register the callback, and listen/serve
+	http.HandleFunc(callback, c.Callback)
+	go func() {
+		if err := http.ListenAndServe(":"+port, nil); err != nil {
+			panic(err)
+		}
+	}()
+
+	return c
 }
 
 // GetHubsForTopic returns all hubs associated with a given topic
@@ -65,6 +80,7 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 // Handles redirect responses (307 and 308) gracefully
 // Passes any errors up, gracefully
 func (sc *Client) SubscribeToTopic(topic string) error {
+	// I'm not confident that this is how we want to get the URL
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
 		// Prepare the body
@@ -88,11 +104,8 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 		if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
 			switch resp.StatusCode {
 			case 202:
-				log.Printf("Successfully subscribed to topic %s on url %s, pending validation", topic, topicURL)
-				if _, ok := sc.subscribedTopicURLs[topic]; !ok {
-					sc.subscribedTopicURLs[topic] = make(map[string]struct{})
-				}
-				sc.subscribedTopicURLs[topic][topicURL] = struct{}{}
+				log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
+				sc.pendingSubs[topicURL] = struct{}{}
 				return nil
 			case 307:
 				log.Printf("Temporary redirect response, trying new address...")
@@ -109,6 +122,80 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 		}
 	}
 	return errors.New("No URL known for the given topic")
+}
+
+// Callback is the function that is hit when a hub responds to
+// a sub/un-sub request.
+func (sc *Client) Callback(w http.ResponseWriter, req *http.Request) {
+	// Differentiate between verification and denial notifications
+	query := req.URL.Query()
+
+	switch query.Get("hub.mode") {
+	case "denied":
+		topic := query.Get("hub.topic")
+		reason := query.Get("hub.reason")
+		log.Printf("Subscription to topic %s from url %s rejected.  Reason provided: {%s}", topic, req.Host, reason)
+	case "subscribe":
+		topic := query.Get("hub.topic")
+		challenge := query.Get("hub.challenge")
+		leaseSeconds := query.Get("hub.lease_seconds")
+		log.Printf("Subscription to topic %s from url %s verification begin.  Challenge provided: {%s}.  Lease length (s): {%s}", topic, req.Host, challenge, leaseSeconds)
+
+		// Turns out we have to store the fact that a subscription request was made
+		if _, exists := sc.pendingSubs[topic]; exists {
+
+			// Immediately spawn a renewal thread
+			go func() {
+				seconds, err := strconv.Atoi(leaseSeconds)
+				if err != nil {
+					panic(err)
+				}
+				// Sleep for some proportion of the lease time
+				time.Sleep(time.Duration(2*seconds/3) * time.Second)
+
+				// If there's an error, log and delete the topic from subscribed list
+				if err = sc.SubscribeToTopic(topic); err != nil {
+					log.Printf("Encountered an error while renewing subscription {%v}", err)
+					delete(sc.activeSubs, topic)
+				}
+
+			}()
+
+			// Write our response
+			w.WriteHeader(200)
+			w.Write([]byte(challenge))
+			delete(sc.pendingSubs, topic)
+
+			// Add to active subs, if we're not already active
+			if _, allocated := sc.activeSubs[topic]; !allocated {
+				sc.activeSubs[topic] = struct{}{}
+			}
+
+			return
+		}
+
+		// Received a callback for a function that we did not send
+		w.WriteHeader(404)
+		w.Write([]byte(""))
+
+	case "unsubscribe":
+		topic := query.Get("hub.topic")
+		challenge := query.Get("hub.challenge")
+		log.Printf("Unsubscribe from topic %s from url %s verification begin.  Challenge provided: {%s}.", topic, req.Host, challenge)
+
+		if _, exists := sc.pendingUnSubs[topic]; exists {
+			w.WriteHeader(200)
+			w.Write([]byte(challenge))
+			delete(sc.pendingSubs, topic)
+			return
+		}
+
+		// Received a callback for a function that we did not send
+		w.WriteHeader(404)
+		w.Write([]byte(""))
+	default:
+		// This indicates a broken request.
+	}
 }
 
 // DiscoverTopic runs the common discovery algorithm, and compiles its results into the client map
