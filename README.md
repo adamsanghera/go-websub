@@ -1,5 +1,7 @@
 # A WIP Implementation of WebSub
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/adamsanghera/go-websub?style=flat)](https://goreportcard.com/report/github.com/adamsanghera/go-websub)
+
 Doing this for fun.  Watch me go!
 
 ## Subscriber
