@@ -29,6 +29,7 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 
 		// Prepare the body
 		data.Set("hub.callback", string(randomURI))
+		log.Printf("Callback {%s}", string(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
 		// data.Set("hub.secret", string(secret))
@@ -79,7 +80,9 @@ func (sc *Client) handleSuccessfulResponse(topicURL string, callbackURI string) 
 
 		defer func() {
 			if err := recover(); err != nil {
-				log.Printf("Callback closed with error %v", err)
+				log.Printf("Callback closed with error %v\n", err)
+			} else {
+				log.Println("Callback closed without alarm")
 			}
 		}()
 
