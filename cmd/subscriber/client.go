@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -32,36 +33,28 @@ import (
 // Client subscribes to topic hubs, following the websub protocol
 type Client struct {
 	port         string
-	callback     string
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
 
 	pendingSubs   map[string]struct{} // perhaps point to a boolean sticky/not-sticky?
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
+
+	// TODO(adam) manage secrets per topic
 }
 
 // NewClient creates and returns a new subscription client
 // Callback needs to be formatted like http{s}://website.domain:{port}/endpoint
-func NewClient(callback string, port string) *Client {
+func NewClient(port string) *Client {
 	// Create the client
-	c := &Client{
-		callback:     callback,
+	return &Client{
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
 
-		subscribedTopicURLs: make(map[string]map[string]struct{}),
+		pendingSubs:   make(map[string]struct{}),
+		pendingUnSubs: make(map[string]struct{}),
+		activeSubs:    make(map[string]struct{}),
 	}
-
-	// Register the callback, and listen/serve
-	http.HandleFunc(callback, c.Callback)
-	go func() {
-		if err := http.ListenAndServe(":"+port, nil); err != nil {
-			panic(err)
-		}
-	}()
-
-	return c
 }
 
 // GetHubsForTopic returns all hubs associated with a given topic
@@ -83,11 +76,18 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 	// I'm not confident that this is how we want to get the URL
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
-		// Prepare the body
+		// Generate some random data
 		data := make(url.Values)
-		data.Set("hub.callback", sc.callback)
+		randomURI := make([]byte, 32)
+		// secret := make([]byte, 128)
+		rand.Read(randomURI)
+		// rand.Read(secret)
+
+		// Prepare the body
+		data.Set("hub.callback", string(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
+		// data.Set("hub.secret", string(secret))
 
 		// Form the request
 		req, _ := http.NewRequest("POST", topicURL, strings.NewReader(data.Encode()))
@@ -106,6 +106,21 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 			case 202:
 				log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
 				sc.pendingSubs[topicURL] = struct{}{}
+				go func() {
+					http.HandleFunc("/"+string(randomURI), sc.Callback)
+
+					defer func() {
+						if err := recover(); err != nil {
+							log.Printf("Callback closed with error %v", err)
+						}
+					}()
+
+					err := http.ListenAndServe(":"+sc.port, nil)
+					if err != nil {
+						panic(err)
+					}
+
+				}()
 				return nil
 			case 307:
 				log.Printf("Temporary redirect response, trying new address...")

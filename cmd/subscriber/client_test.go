@@ -18,7 +18,7 @@ func TestClient_SubscribeToTopic(t *testing.T) {
 		})
 
 	t.Run("Successful subscription", func(t *testing.T) {
-		sc := NewClient("localhost:4000")
+		sc := NewClient("4000")
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 		err := sc.SubscribeToTopic("http://example.com/feed")
 		if err != nil {
