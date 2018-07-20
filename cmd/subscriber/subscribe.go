@@ -58,8 +58,7 @@ func (sc *Client) processSubscriptionResponse(
 		switch resp.StatusCode {
 		case 202:
 			log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
-			sc.liveEndpoints[callbackURI] = struct{}{}
-			sc.pendingSubs[topicURL] = struct{}{}
+			sc.pendingSubs[topicURL] = callbackURI
 			return nil
 		case 307:
 			log.Printf("Temporary redirect response, trying new address...")

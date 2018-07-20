@@ -27,8 +27,7 @@ type Client struct {
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
 
-	pendingSubs   map[string]struct{} // perhaps point to a boolean sticky/not-sticky?
-	liveEndpoints map[string]struct{}
+	pendingSubs   map[string]string // perhaps point to a boolean sticky/not-sticky?
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
 
@@ -43,8 +42,7 @@ func NewClient(port string) *Client {
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
 
-		pendingSubs:   make(map[string]struct{}),
-		liveEndpoints: make(map[string]struct{}),
+		pendingSubs:   make(map[string]string),
 		pendingUnSubs: make(map[string]struct{}),
 		activeSubs:    make(map[string]struct{}),
 	}
