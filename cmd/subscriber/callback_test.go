@@ -13,6 +13,8 @@ import (
 )
 
 func TestClient_handleAckedSubscription(t *testing.T) {
+	sc := NewClient("4000")
+
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()
 
@@ -31,7 +33,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 			return resp, nil
 		})
 
-	sc := NewClient("4000")
 	t.Run("Everything works", func(t *testing.T) {
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 		sc.SubscribeToTopic("http://example.com/feed")
@@ -51,9 +52,9 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		data.Set("hub.challenge", "kitties")
 		data.Set("hub.lease_seconds", "20")
 
-		log.Println("Hitting", "http://localhost:4000/"+callback)
+		log.Println("Hitting", "http://localhost:4000/callback/"+callback)
 
-		req, err := http.NewRequest("POST", "http://localhost:4000/"+callback, strings.NewReader(data.Encode()))
+		req, err := http.NewRequest("POST", "http://localhost:4000/callback/"+callback, strings.NewReader(data.Encode()))
 		if err != nil {
 			panic(err)
 		}

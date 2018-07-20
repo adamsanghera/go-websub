@@ -6,8 +6,23 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
+
+func (sc *Client) CallbackSwitch(w http.ResponseWriter, req *http.Request) {
+	endpoint := strings.Split(req.URL.Path, "/callback/")[1]
+
+	log.Printf("Received callback with endpoint {%s}\n", endpoint)
+
+	if _, exists := sc.liveEndpoints[endpoint]; exists {
+		sc.Callback(w, req)
+		delete(sc.liveEndpoints, endpoint)
+	} else {
+		w.WriteHeader(404)
+		w.Write([]byte(""))
+	}
+}
 
 // Callback is the function that is hit when a hub responds to
 // a sub/un-sub request.
