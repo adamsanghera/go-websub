@@ -21,9 +21,7 @@ func (sc *Client) Callback(w http.ResponseWriter, req *http.Request) {
 		reason := query.Get("hub.reason")
 		log.Printf("Subscription to topic %s from url %s rejected.  Reason provided: {%s}", topic, req.Host, reason)
 	case "subscribe":
-		log.Println("Eh2")
 		sc.handleAckedSubscription(w, query)
-		return
 	case "unsubscribe":
 		topic := query.Get("hub.topic")
 		challenge := query.Get("hub.challenge")
@@ -58,7 +56,6 @@ func (sc *Client) handleAckedSubscription(w http.ResponseWriter, query url.Value
 
 	// 1
 	if _, exists := sc.pendingSubs[topic]; exists {
-		log.Println("Eh3")
 		// 2
 		go func() {
 			seconds, err := strconv.Atoi(leaseSeconds)

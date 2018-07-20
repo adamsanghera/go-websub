@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
@@ -41,8 +40,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 			t.Fatal("Subscription not registered as pending")
 		}
 
-		time.Sleep(1 * time.Second)
-
 		if len(callback) == 0 {
 			t.Fatal("Callback unset")
 		}
@@ -69,8 +66,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-
-		time.Sleep(1 * time.Second)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("Status code is %d instead of 200", resp.StatusCode)
