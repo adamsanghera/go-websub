@@ -2,6 +2,7 @@ package subscriber
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -22,14 +23,14 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 
 		// Generate some random data
 		data := make(url.Values)
-		randomURI := make([]byte, 32)
+		randomURI := make([]byte, 16)
 		// secret := make([]byte, 128)
 		rand.Read(randomURI)
 		// rand.Read(secret)
 
 		// Prepare the body
-		data.Set("hub.callback", string(randomURI))
-		log.Printf("Callback {%s}", string(randomURI))
+		data.Set("hub.callback", hex.EncodeToString(randomURI))
+		log.Printf("Callback {%s}", hex.EncodeToString(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
 		// data.Set("hub.secret", string(secret))
@@ -45,7 +46,7 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 			panic(err)
 		}
 
-		return sc.processSubscriptionResponse(resp, topicURL, string(randomURI), topic)
+		return sc.processSubscriptionResponse(resp, topicURL, hex.EncodeToString(randomURI), topic)
 	}
 	return errors.New("No URL known for the given topic")
 }
@@ -76,6 +77,7 @@ func (sc *Client) processSubscriptionResponse(
 func (sc *Client) handleSuccessfulResponse(topicURL string, callbackURI string) error {
 	sc.pendingSubs[topicURL] = struct{}{}
 	go func() {
+		log.Println("Registering", "/"+callbackURI)
 		http.HandleFunc("/"+string(callbackURI), sc.Callback)
 
 		defer func() {
@@ -86,7 +88,7 @@ func (sc *Client) handleSuccessfulResponse(topicURL string, callbackURI string) 
 			}
 		}()
 
-		err := http.ListenAndServe(":"+sc.port, nil)
+		err := http.ListenAndServe(":4000", nil)
 		if err != nil {
 			panic(err)
 		}

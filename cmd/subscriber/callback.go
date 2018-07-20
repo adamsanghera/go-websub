@@ -1,8 +1,10 @@
 package subscriber
 
 import (
+	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 )
@@ -11,14 +13,17 @@ import (
 // a sub/un-sub request.
 func (sc *Client) Callback(w http.ResponseWriter, req *http.Request) {
 	// Differentiate between verification and denial notifications
-	query := req.URL.Query()
+	reqBody, _ := ioutil.ReadAll(req.Body)
+	query, _ := url.ParseQuery(string(reqBody))
 	switch query.Get("hub.mode") {
 	case "denied":
 		topic := query.Get("hub.topic")
 		reason := query.Get("hub.reason")
 		log.Printf("Subscription to topic %s from url %s rejected.  Reason provided: {%s}", topic, req.Host, reason)
 	case "subscribe":
-		sc.handleAckedSubscription(w, req)
+		log.Println("Eh2")
+		sc.handleAckedSubscription(w, query)
+		return
 	case "unsubscribe":
 		topic := query.Get("hub.topic")
 		challenge := query.Get("hub.challenge")
@@ -45,17 +50,15 @@ func (sc *Client) Callback(w http.ResponseWriter, req *http.Request) {
 // 3. ACKs the subscription ACK, by writing the challenge back with a 200 code
 // 4. Removes the subscription from the pending set
 // 5. Adds the subscription to the active set
-func (sc *Client) handleAckedSubscription(w http.ResponseWriter, req *http.Request) {
-	query := req.URL.Query()
-
+func (sc *Client) handleAckedSubscription(w http.ResponseWriter, query url.Values) {
 	topic := query.Get("hub.topic")
 	challenge := query.Get("hub.challenge")
 	leaseSeconds := query.Get("hub.lease_seconds")
-	log.Printf("Subscription to topic %s from url %s verification begin.  Challenge provided: {%s}.  Lease length (s): {%s}", topic, req.Host, challenge, leaseSeconds)
+	log.Printf("Subscription to topic %s verification begin.  Challenge provided: {%s}.  Lease length (s): {%s}", topic, challenge, leaseSeconds)
 
 	// 1
 	if _, exists := sc.pendingSubs[topic]; exists {
-
+		log.Println("Eh3")
 		// 2
 		go func() {
 			seconds, err := strconv.Atoi(leaseSeconds)

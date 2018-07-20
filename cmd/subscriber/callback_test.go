@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
@@ -21,8 +22,12 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 	httpmock.RegisterResponder("POST", "http://example.com/feed",
 		func(req *http.Request) (*http.Response, error) {
 			resp := httpmock.NewStringResponse(202, "")
-			if respBody, err := ioutil.ReadAll(req.Body); err == nil {
-				log.Println(string(respBody))
+			if reqBody, err := ioutil.ReadAll(req.Body); err == nil {
+				values, err := url.ParseQuery(string(reqBody))
+				if err != nil {
+					panic(err)
+				}
+				callback = values.Get("hub.callback")
 			}
 			return resp, nil
 		})
@@ -36,7 +41,7 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 			t.Fatal("Subscription not registered as pending")
 		}
 
-		// time.Sleep(1 * time.Second)
+		time.Sleep(1 * time.Second)
 
 		if len(callback) == 0 {
 			t.Fatal("Callback unset")
@@ -49,14 +54,23 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		data.Set("hub.challenge", "kitties")
 		data.Set("hub.lease_seconds", "20")
 
-		req, _ := http.NewRequest("POST", "localhost:4000/"+callback, strings.NewReader(data.Encode()))
+		log.Println("Hitting", "http://localhost:4000/"+callback)
+
+		req, err := http.NewRequest("POST", "http://localhost:4000/"+callback, strings.NewReader(data.Encode()))
+		if err != nil {
+			panic(err)
+		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+
+		httpmock.Deactivate()
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			panic(err)
 		}
+
+		time.Sleep(1 * time.Second)
 
 		if resp.StatusCode != 200 {
 			t.Fatalf("Status code is %d instead of 200", resp.StatusCode)
