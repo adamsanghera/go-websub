@@ -6,26 +6,39 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 )
 
-// Callback is the function that is hit when a hub responds to
-// a sub/un-sub request.
-func (sc *Client) Callback(w http.ResponseWriter, req *http.Request) {
-	// Differentiate between verification and denial notifications
+func (sc *Client) CallbackSwitch(w http.ResponseWriter, req *http.Request) {
+	endpoint := strings.Split(req.URL.Path, "/callback/")[1]
 	reqBody, _ := ioutil.ReadAll(req.Body)
 	query, _ := url.ParseQuery(string(reqBody))
+
+	if callbackURL, exists := sc.pendingSubs[query.Get("hub.topic")]; exists && callbackURL == endpoint {
+		sc.Callback(w, query)
+		delete(sc.pendingSubs, endpoint)
+	} else {
+		w.WriteHeader(404)
+		w.Write([]byte(""))
+	}
+}
+
+// Callback is the function that is hit when a hub responds to
+// a sub/un-sub request.
+func (sc *Client) Callback(w http.ResponseWriter, query url.Values) {
+	// Differentiate between verification and denial notifications
 	switch query.Get("hub.mode") {
 	case "denied":
 		topic := query.Get("hub.topic")
 		reason := query.Get("hub.reason")
-		log.Printf("Subscription to topic %s from url %s rejected.  Reason provided: {%s}", topic, req.Host, reason)
+		log.Printf("Subscription to topic %s rejected.  Reason provided: {%s}", topic, reason)
 	case "subscribe":
 		sc.handleAckedSubscription(w, query)
 	case "unsubscribe":
 		topic := query.Get("hub.topic")
 		challenge := query.Get("hub.challenge")
-		log.Printf("Unsubscribe from topic %s from url %s verification begin.  Challenge provided: {%s}.", topic, req.Host, challenge)
+		log.Printf("Unsubscribe from topic %s verification begin.  Challenge provided: {%s}.", topic, challenge)
 
 		if _, exists := sc.pendingUnSubs[topic]; exists {
 			w.WriteHeader(200)

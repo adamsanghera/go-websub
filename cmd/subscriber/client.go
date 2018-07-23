@@ -1,6 +1,8 @@
 package subscriber
 
 import (
+	"net/http"
+
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
 
@@ -25,10 +27,11 @@ type Client struct {
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
 
-	pendingSubs   map[string]struct{} // perhaps point to a boolean sticky/not-sticky?
+	pendingSubs   map[string]string // perhaps point to a boolean sticky/not-sticky?
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
 
+	srv *http.ServeMux
 	// TODO(adam) manage secrets per topic
 }
 
@@ -36,14 +39,24 @@ type Client struct {
 // Callback needs to be formatted like http{s}://website.domain:{port}/endpoint
 func NewClient(port string) *Client {
 	// Create the client
-	return &Client{
+	client := &Client{
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
 
-		pendingSubs:   make(map[string]struct{}),
+		pendingSubs:   make(map[string]string),
 		pendingUnSubs: make(map[string]struct{}),
 		activeSubs:    make(map[string]struct{}),
 	}
+
+	go func() {
+		http.HandleFunc("/callback/", client.CallbackSwitch)
+		// Handles all callbacks for subscriptions, unsubscriptions, etc.
+		if err := http.ListenAndServe(":4000", nil); err != nil {
+			panic(err)
+		}
+	}()
+
+	return client
 }
 
 // GetHubsForTopic returns all hubs associated with a given topic

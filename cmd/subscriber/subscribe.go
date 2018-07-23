@@ -30,7 +30,6 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 
 		// Prepare the body
 		data.Set("hub.callback", hex.EncodeToString(randomURI))
-		log.Printf("Callback {%s}", hex.EncodeToString(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
 		// data.Set("hub.secret", string(secret))
@@ -58,7 +57,8 @@ func (sc *Client) processSubscriptionResponse(
 		switch resp.StatusCode {
 		case 202:
 			log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
-			return sc.handleSuccessfulResponse(topicURL, callbackURI)
+			sc.pendingSubs[topicURL] = callbackURI
+			return nil
 		case 307:
 			log.Printf("Temporary redirect response, trying new address...")
 			return sc.SubscribeToTopic(resp.Header.Get("Location"))
@@ -72,27 +72,4 @@ func (sc *Client) processSubscriptionResponse(
 	} else {
 		return err
 	}
-}
-
-func (sc *Client) handleSuccessfulResponse(topicURL string, callbackURI string) error {
-	sc.pendingSubs[topicURL] = struct{}{}
-	go func() {
-		log.Println("Registering", "/"+callbackURI)
-		http.HandleFunc("/"+string(callbackURI), sc.Callback)
-
-		defer func() {
-			if err := recover(); err != nil {
-				log.Printf("Callback closed with error %v\n", err)
-			} else {
-				log.Println("Callback closed without alarm")
-			}
-		}()
-
-		err := http.ListenAndServe(":4000", nil)
-		if err != nil {
-			panic(err)
-		}
-
-	}()
-	return nil
 }
