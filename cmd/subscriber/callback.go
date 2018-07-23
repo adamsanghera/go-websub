@@ -101,10 +101,26 @@ func (sc *Client) handleDeniedSubscription(w http.ResponseWriter, query url.Valu
 	sc.pSubsMut.Lock()
 	defer sc.pSubsMut.Unlock()
 
+	sc.aSubsMut.Lock()
+	defer sc.aSubsMut.Unlock()
+
 	topic := query.Get("hub.topic")
 	reason := query.Get("hub.reason")
+
 	log.Printf("Subscription to topic %s rejected.  Reason provided: {%s}", topic, reason)
-	delete(sc.pendingSubs, topic)
+
+	// Case where sub is pending
+	if _, exists := sc.pendingSubs[topic]; exists {
+		delete(sc.pendingSubs, topic)
+	}
+
+	// Case where sub is already active
+	if _, exists := sc.activeSubs[topic]; exists {
+		delete(sc.activeSubs, topic)
+	}
+
+	w.WriteHeader(200)
+	w.Write([]byte(""))
 }
 
 func (sc *Client) handleUnsubscription(w http.ResponseWriter, query url.Values) {
