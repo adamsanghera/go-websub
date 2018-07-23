@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
@@ -33,6 +34,13 @@ type Client struct {
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
 
+	tthMut *sync.Mutex
+	ttsMut *sync.Mutex
+
+	pSubsMut   *sync.Mutex
+	pUnSubsMut *sync.Mutex
+	aSubsMut   *sync.Mutex
+
 	srvMux *http.ServeMux
 	srv    *http.Server
 	// TODO(adam) manage secrets per topic
@@ -49,8 +57,16 @@ func NewClient(port string) *Client {
 		pendingSubs:   make(map[string]string),
 		pendingUnSubs: make(map[string]struct{}),
 		activeSubs:    make(map[string]struct{}),
-		srvMux:        http.NewServeMux(),
-		srv:           &http.Server{Addr: ":4000"},
+
+		tthMut: &sync.Mutex{},
+		ttsMut: &sync.Mutex{},
+
+		pSubsMut:   &sync.Mutex{},
+		pUnSubsMut: &sync.Mutex{},
+		aSubsMut:   &sync.Mutex{},
+
+		srvMux: http.NewServeMux(),
+		srv:    &http.Server{Addr: ":4000"},
 	}
 
 	client.srv.Handler = client.srvMux
@@ -68,6 +84,9 @@ func NewClient(port string) *Client {
 
 // GetHubsForTopic returns all hubs associated with a given topic
 func (sc *Client) GetHubsForTopic(topic string) []string {
+	sc.tthMut.Lock()
+	defer sc.tthMut.Unlock()
+
 	hubs := make([]string, len(sc.topicsToHubs[topic]))
 	if set, exists := sc.topicsToHubs[topic]; exists {
 		for url := range set {
@@ -80,6 +99,11 @@ func (sc *Client) GetHubsForTopic(topic string) []string {
 // DiscoverTopic runs the common discovery algorithm, and compiles its results into the client map
 func (sc *Client) DiscoverTopic(topic string) {
 	hubs, self := discovery.DiscoverTopic(topic)
+
+	sc.tthMut.Lock()
+	defer sc.tthMut.Unlock()
+	sc.ttsMut.Lock()
+	defer sc.ttsMut.Unlock()
 
 	// Allocate the map if necessary
 	if _, ok := sc.topicsToHubs[topic]; !ok {

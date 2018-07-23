@@ -18,21 +18,23 @@ import (
 // Handles redirect responses (307 and 308) gracefully
 // Passes any errors up, gracefully
 func (sc *Client) SubscribeToTopic(topic string) error {
+
+	sc.ttsMut.Lock()
+
 	// I'm not confident that this is how we want to get the URL
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
+
+		sc.ttsMut.Unlock() // It is ok if this state changes from underneath us
 
 		// Generate some random data
 		data := make(url.Values)
 		randomURI := make([]byte, 16)
-		// secret := make([]byte, 128)
 		rand.Read(randomURI)
-		// rand.Read(secret)
 
 		// Prepare the body
 		data.Set("hub.callback", hex.EncodeToString(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
-		// data.Set("hub.secret", string(secret))
 
 		// Form the request
 		req, _ := http.NewRequest("POST", topicURL, strings.NewReader(data.Encode()))
@@ -47,6 +49,8 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 
 		return sc.processSubscriptionResponse(resp, topicURL, hex.EncodeToString(randomURI), topic)
 	}
+
+	sc.ttsMut.Unlock()
 	return errors.New("No URL known for the given topic")
 }
 
@@ -57,6 +61,8 @@ func (sc *Client) processSubscriptionResponse(
 		switch resp.StatusCode {
 		case 202:
 			log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
+			sc.pSubsMut.Lock()
+			defer sc.pSubsMut.Unlock()
 			sc.pendingSubs[topicURL] = callbackURI
 			return nil
 		case 307:

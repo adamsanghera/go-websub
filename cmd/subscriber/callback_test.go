@@ -11,18 +11,6 @@ import (
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
 
-/*
-
-	Subscription request:
-
-											/->[callback uri]
-		Subscriber client --> mock http server [posing as hub]
-
-	Validation, verification:
-		mock --> subscriber client
-
-*/
-
 func TestClient_handleAckedSubscription(t *testing.T) {
 	httpmock.Activate()
 	var callback string
@@ -109,3 +97,5 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 	sc.ShutDown()
 	httpmock.DeactivateAndReset()
 }
+
+// TODO(adam): Testing parallel subscription handling

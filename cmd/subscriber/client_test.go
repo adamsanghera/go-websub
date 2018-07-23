@@ -29,3 +29,7 @@ func TestClient_SuccessfulSubscription(t *testing.T) {
 	sc.ShutDown()
 	httpmock.DeactivateAndReset()
 }
+
+// TODO(adam) tests that target parallelism in SubscribeToTopic
+// Particularly interested in pushing redirect chains:
+//   x --> y --> x --> y

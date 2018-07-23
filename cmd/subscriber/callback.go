@@ -10,48 +10,26 @@ import (
 	"time"
 )
 
+// CallbackSwitch is the branching point between the various types of callback responses
 func (sc *Client) CallbackSwitch(w http.ResponseWriter, req *http.Request) {
 	endpoint := strings.Split(req.URL.Path, "/callback/")[1]
 	reqBody, _ := ioutil.ReadAll(req.Body)
 	query, _ := url.ParseQuery(string(reqBody))
 
 	if callbackURL, exists := sc.pendingSubs[query.Get("hub.topic")]; exists && callbackURL == endpoint {
-		sc.Callback(w, query)
-		delete(sc.pendingSubs, endpoint)
+		switch query.Get("hub.mode") {
+		case "denied":
+			sc.handleDeniedSubscription(w, query)
+		case "subscribe":
+			sc.handleSubscription(w, query)
+		case "unsubscribe":
+			sc.handleUnsubscription(w, query)
+		default:
+			// This indicates a broken request.
+		}
 	} else {
 		w.WriteHeader(404)
 		w.Write([]byte(""))
-	}
-}
-
-// Callback is the function that is hit when a hub responds to
-// a sub/un-sub request.
-func (sc *Client) Callback(w http.ResponseWriter, query url.Values) {
-	// Differentiate between verification and denial notifications
-	switch query.Get("hub.mode") {
-	case "denied":
-		topic := query.Get("hub.topic")
-		reason := query.Get("hub.reason")
-		log.Printf("Subscription to topic %s rejected.  Reason provided: {%s}", topic, reason)
-	case "subscribe":
-		sc.handleAckedSubscription(w, query)
-	case "unsubscribe":
-		topic := query.Get("hub.topic")
-		challenge := query.Get("hub.challenge")
-		log.Printf("Unsubscribe from topic %s verification begin.  Challenge provided: {%s}.", topic, challenge)
-
-		if _, exists := sc.pendingUnSubs[topic]; exists {
-			w.WriteHeader(200)
-			w.Write([]byte(challenge))
-			delete(sc.pendingSubs, topic)
-			return
-		}
-
-		// Received a callback for a function that we did not send
-		w.WriteHeader(404)
-		w.Write([]byte(""))
-	default:
-		// This indicates a broken request.
 	}
 }
 
@@ -61,15 +39,22 @@ func (sc *Client) Callback(w http.ResponseWriter, query url.Values) {
 // 3. ACKs the subscription ACK, by writing the challenge back with a 200 code
 // 4. Removes the subscription from the pending set
 // 5. Adds the subscription to the active set
-func (sc *Client) handleAckedSubscription(w http.ResponseWriter, query url.Values) {
+func (sc *Client) handleSubscription(w http.ResponseWriter, query url.Values) {
 	topic := query.Get("hub.topic")
 	challenge := query.Get("hub.challenge")
 	leaseSeconds := query.Get("hub.lease_seconds")
-	log.Printf("Subscription to topic %s verification begin.  Challenge provided: {%s}.  Lease length (s): {%s}", topic, challenge, leaseSeconds)
+	log.Printf("Verifying sub to topic %s.  Challenge provided: {%s}.  Lease length (s): {%s}", topic, challenge, leaseSeconds)
+
+	sc.pSubsMut.Lock()
+	defer sc.pSubsMut.Unlock()
 
 	// 1
 	if _, exists := sc.pendingSubs[topic]; exists {
 		// 2
+
+		sc.aSubsMut.Lock()
+		defer sc.aSubsMut.Unlock()
+
 		go func() {
 			seconds, err := strconv.Atoi(leaseSeconds)
 			if err != nil {
@@ -104,4 +89,37 @@ func (sc *Client) handleAckedSubscription(w http.ResponseWriter, query url.Value
 	w.WriteHeader(404)
 	w.Write([]byte(""))
 
+}
+
+func (sc *Client) handleDeniedSubscription(w http.ResponseWriter, query url.Values) {
+	sc.pSubsMut.Lock()
+	defer sc.pSubsMut.Unlock()
+
+	topic := query.Get("hub.topic")
+	reason := query.Get("hub.reason")
+	log.Printf("Subscription to topic %s rejected.  Reason provided: {%s}", topic, reason)
+	delete(sc.pendingSubs, topic)
+}
+
+func (sc *Client) handleUnsubscription(w http.ResponseWriter, query url.Values) {
+	sc.pUnSubsMut.Lock()
+	defer sc.pUnSubsMut.Unlock()
+	sc.aSubsMut.Lock()
+	defer sc.aSubsMut.Unlock()
+
+	topic := query.Get("hub.topic")
+	challenge := query.Get("hub.challenge")
+
+	log.Printf("Verifying unsub from topic %s.  Challenge provided: {%s}.", topic, challenge)
+
+	if _, exists := sc.pendingUnSubs[topic]; exists {
+		w.WriteHeader(200)
+		w.Write([]byte(challenge))
+		delete(sc.pendingSubs, topic)
+		return
+	}
+
+	if _, exists := sc.activeSubs[topic]; exists {
+		delete(sc.activeSubs, topic)
+	}
 }
