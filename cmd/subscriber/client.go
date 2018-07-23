@@ -33,6 +33,7 @@ The client has three stages in its life cycle.
 3. Shutdown
    - Sends a shutdown signal to the client's callback server
 
+---
 
 Assumptions:
 	- Cient is a long-running service
