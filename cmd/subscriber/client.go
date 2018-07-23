@@ -9,15 +9,16 @@ is a service that discovers hubs, and subscribes to topics.
 According to https://www.w3.org/TR/websub/#conformance-classes, a Subscriber
 
 MUST:
-- support specific content-delivery mechanisms
-- send subscription requests according to the spec
-- acknowledge content-delivery requests with a HTTP 2xx code
+	- support specific content-delivery mechanisms
+	- send subscription requests according to the spec
+	- acknowledge content-delivery requests with a HTTP 2xx code
 
 MAY:
-- request specific lease durations, related to the subscription
-- include a secret in the sub request.  If it does, then it
-	- MUST use the secret to verify the signature in the content delivery request
-- request that a subscription be deactivated with an unsubscribe mechanism
+	- request specific lease durations, related to the subscription
+	- include a secret in the sub request.  If it does, then it
+		- MUST use the secret to verify the signature in the content delivery request
+	- request that a subscription be deactivated with an unsubscribe mechanism
+
 
 This package implements the above requirements with the Client struct.
 
@@ -32,6 +33,7 @@ The client has three stages in its life cycle.
    - Should never panic, only log errors
 3. Shutdown
    - Sends a shutdown signal to the client's callback server
+
 
 Assumptions:
 	- Cient is a long-running service
