@@ -1,6 +1,6 @@
-[![GoDoc](https://godoc.org/github.com/adamsanghera/go-websub/cmd/subscriber?status.svg)](https://godoc.org/github.com/adamsanghera/go-websub/cmd/subscriber)
-
 # Subscriber
+
+[![GoDoc](https://godoc.org/github.com/adamsanghera/go-websub/cmd/subscriber?status.svg)](https://godoc.org/github.com/adamsanghera/go-websub/cmd/subscriber)
 
 ## Description / Spec
 
