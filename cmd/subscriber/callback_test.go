@@ -27,6 +27,8 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 	httpmock.Activate()
 	var callback string
 
+	sc := NewClient("4000")
+
 	// POSTs to this address will result in the
 	httpmock.RegisterResponder("POST", "http://example.com/feed",
 		func(req *http.Request) (*http.Response, error) {
@@ -48,7 +50,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		})
 
 	t.Run("Everything works", func(t *testing.T) {
-		sc := NewClient("4000")
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 
 		// The POST is made in here
@@ -105,5 +106,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		}
 	})
 
+	sc.ShutDown()
 	httpmock.DeactivateAndReset()
 }
