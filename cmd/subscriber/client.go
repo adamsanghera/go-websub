@@ -19,7 +19,6 @@ MAY:
 		- MUST use the secret to verify the signature in the content delivery request
 	- request that a subscription be deactivated with an unsubscribe mechanism
 
-
 This package implements the above requirements with the Client struct.
 
 The client has three stages in its life cycle.
