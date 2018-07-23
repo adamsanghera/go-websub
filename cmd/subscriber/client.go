@@ -1,6 +1,8 @@
 package subscriber
 
 import (
+	"context"
+	"log"
 	"net/http"
 
 	"github.com/adamsanghera/go-websub/internal/discovery"
@@ -31,7 +33,8 @@ type Client struct {
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
 
-	srv *http.ServeMux
+	srvMux *http.ServeMux
+	srv    *http.Server
 	// TODO(adam) manage secrets per topic
 }
 
@@ -46,13 +49,17 @@ func NewClient(port string) *Client {
 		pendingSubs:   make(map[string]string),
 		pendingUnSubs: make(map[string]struct{}),
 		activeSubs:    make(map[string]struct{}),
+		srvMux:        http.NewServeMux(),
+		srv:           &http.Server{Addr: ":4000"},
 	}
 
+	client.srv.Handler = client.srvMux
+
 	go func() {
-		http.HandleFunc("/callback/", client.CallbackSwitch)
+		client.srvMux.HandleFunc("/callback/", client.CallbackSwitch)
 		// Handles all callbacks for subscriptions, unsubscriptions, etc.
-		if err := http.ListenAndServe(":4000", nil); err != nil {
-			panic(err)
+		if err := client.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Callback server crashed %v\n", err)
 		}
 	}()
 
@@ -84,4 +91,10 @@ func (sc *Client) DiscoverTopic(topic string) {
 		sc.topicsToHubs[topic][hub] = struct{}{}
 	}
 	sc.topicsToSelf[topic] = self
+}
+
+func (sc *Client) ShutDown() {
+	if err := sc.srv.Shutdown(context.Background()); err != nil {
+		log.Fatalf("Failed to shutdown callback server %v\n", err)
+	}
 }
