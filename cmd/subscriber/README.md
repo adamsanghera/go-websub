@@ -4,12 +4,9 @@
 
 ## Description / Spec
 
-Package subscriber is a Go client library that implements the W3 Group's WebSub protocol (https://www.w3.org/TR/websub/), a broker-supported pub-sub architecture built on top of HTTP.
+Package subscriber is a Go client library that implements the [W3 Group's WebSub protocol](https://www.w3.org/TR/websub/), a broker-supported pub-sub architecture built on top of HTTP.
 
-According to https://www.w3.org/TR/websub/#subscriber, a Subscriber
-is a service that discovers hubs, and subscribes to topics.
-
-According to https://www.w3.org/TR/websub/#conformance-classes, a Subscriber
+According to [the spec](https://www.w3.org/TR/websub/#subscriber) a Subscriber is a service that discovers hubs, and subscribes to topics.  More specifically, as described [here](https://www.w3.org/TR/websub/#conformance-classes), a Subscriber must conform to the following specs:
 
 MUST:
 
@@ -32,7 +29,7 @@ The client has three stages in its life cycle.
 
 1. Birth
    - All data structures are initialized
-   - An http server is created, to support callbacks (https://www.w3.org/TR/websub/#hub-verifies-intent)
+   - An http server is created, to support [callbacks](https://www.w3.org/TR/websub/#hub-verifies-intent)
    - The callback endpoint is registered
 2. Normal state
    - Processes subscription/unsubscription/discovery commands in parallel
