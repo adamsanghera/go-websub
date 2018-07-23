@@ -31,6 +31,7 @@ type Client struct {
 	pendingUnSubs map[string]struct{}
 	activeSubs    map[string]struct{}
 
+	srv *http.ServeMux
 	// TODO(adam) manage secrets per topic
 }
 
@@ -48,8 +49,8 @@ func NewClient(port string) *Client {
 	}
 
 	go func() {
-		// Handles all callbacks for subscriptions, unsubscriptions, etc.
 		http.HandleFunc("/callback/", client.CallbackSwitch)
+		// Handles all callbacks for subscriptions, unsubscriptions, etc.
 		if err := http.ListenAndServe(":4000", nil); err != nil {
 			panic(err)
 		}

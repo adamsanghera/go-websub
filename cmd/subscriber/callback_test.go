@@ -2,7 +2,6 @@ package subscriber
 
 import (
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -12,11 +11,42 @@ import (
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
 
+/*
+
+	Subscription request:
+
+											/->[callback uri]
+		Subscriber client --> mock http server [posing as hub]
+
+	Validation, verification:
+		mock --> subscriber client
+
+*/
+
 func TestClient_handleAckedSubscription(t *testing.T) {
+	httpmock.Activate()
+
+	/* First super basic test */
 	sc := NewClient("4000")
 
+	httpmock.RegisterResponder("POST", "http://example.com/feed",
+		func(req *http.Request) (*http.Response, error) {
+			resp := httpmock.NewStringResponse(202, "")
+			return resp, nil
+		})
+
+	t.Run("Successful subscription", func(t *testing.T) {
+		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
+		err := sc.SubscribeToTopic("http://example.com/feed")
+		if err != nil {
+			t.Error("Failed to subscribe", err)
+		}
+	})
+
+	httpmock.DeactivateAndReset()
 	httpmock.Activate()
-	defer httpmock.DeactivateAndReset()
+
+	/* Second test -- tests callback works as advertised */
 
 	var callback string
 
@@ -52,8 +82,6 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		data.Set("hub.challenge", "kitties")
 		data.Set("hub.lease_seconds", "20")
 
-		log.Println("Hitting", "http://localhost:4000/callback/"+callback)
-
 		req, err := http.NewRequest("POST", "http://localhost:4000/callback/"+callback, strings.NewReader(data.Encode()))
 		if err != nil {
 			panic(err)
@@ -79,6 +107,8 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		} else {
 			t.Fatalf("Failed to parse body with err {%v}", err)
 		}
-
 	})
+
+	httpmock.DeactivateAndReset()
+
 }

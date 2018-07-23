@@ -30,7 +30,6 @@ func (sc *Client) SubscribeToTopic(topic string) error {
 
 		// Prepare the body
 		data.Set("hub.callback", hex.EncodeToString(randomURI))
-		log.Printf("Callback {%s}", hex.EncodeToString(randomURI))
 		data.Set("hub.mode", "subscribe")
 		data.Set("hub.topic", topicURL)
 		// data.Set("hub.secret", string(secret))
