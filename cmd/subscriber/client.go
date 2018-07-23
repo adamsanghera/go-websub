@@ -1,3 +1,42 @@
+/*
+Package subscriber is a Go client library that implements the W3 Group's
+WebSub protocol (https://www.w3.org/TR/websub/), a broker-supported pub-sub
+architecture built on top of HTTP.
+
+According to https://www.w3.org/TR/websub/#subscriber, a Subscriber
+is a service that discovers hubs, and subscribes to topics.
+
+According to https://www.w3.org/TR/websub/#conformance-classes, a Subscriber
+
+MUST:
+- support specific content-delivery mechanisms
+- send subscription requests according to the spec
+- acknowledge content-delivery requests with a HTTP 2xx code
+
+MAY:
+- request specific lease durations, related to the subscription
+- include a secret in the sub request.  If it does, then it
+	- MUST use the secret to verify the signature in the content delivery request
+- request that a subscription be deactivated with an unsubscribe mechanism
+
+This package implements the above requirements with the Client struct.
+
+The client has three stages in its life cycle.
+
+1. Birth
+   - All data structures are initialized
+   - An http server is created, to support callbacks (https://www.w3.org/TR/websub/#hub-verifies-intent)
+   - The callback endpoint is registered
+2. Normal state
+   - Processes subscription/unsubscription/discovery commands in parallel
+   - Should never panic, only log errors
+3. Shutdown
+   - Sends a shutdown signal to the client's callback server
+
+Assumptions:
+	- Cient is a long-running service
+	- Sticky subscriptions (i.e. auto-renewing subscriptions) are the only subscriptions we want
+*/
 package subscriber
 
 import (
@@ -8,21 +47,6 @@ import (
 
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
-
-/*
-	According to https://www.w3.org/TR/websub/#subscriber, a Subscriber
-	is a service that discovers hubs and topics.
-	According to https://www.w3.org/TR/websub/#conformance-classes, a Subscriber
-	MUST:
-	- support specific content-delivery mechanisms
-	- send subscription requests according to the spec
-	- acknowledge content-delivery requests with a HTTP 2xx code
-	MAY:
-	- request specific lease durations, related to the subscription
-	- include a secret in the sub request.  If it does, then it
-		- MUST use the secret to verify the signature in the content delivery request
-	- request that a subscription be deactivated with an unsubscribe mechanism
-*/
 
 // Client subscribes to topic hubs, following the websub protocol
 type Client struct {
@@ -41,8 +65,8 @@ type Client struct {
 	pUnSubsMut *sync.Mutex
 	aSubsMut   *sync.Mutex
 
-	srvMux *http.ServeMux
-	srv    *http.Server
+	callbackMux *http.ServeMux
+	callbackSrv *http.Server
 	// TODO(adam) manage secrets per topic
 }
 
@@ -65,16 +89,16 @@ func NewClient(port string) *Client {
 		pUnSubsMut: &sync.Mutex{},
 		aSubsMut:   &sync.Mutex{},
 
-		srvMux: http.NewServeMux(),
-		srv:    &http.Server{Addr: ":4000"},
+		callbackMux: http.NewServeMux(),
+		callbackSrv: &http.Server{Addr: ":" + port},
 	}
 
-	client.srv.Handler = client.srvMux
+	client.callbackSrv.Handler = client.callbackMux
 
 	go func() {
-		client.srvMux.HandleFunc("/callback/", client.CallbackSwitch)
+		client.callbackMux.HandleFunc("/callback/", client.CallbackSwitch)
 		// Handles all callbacks for subscriptions, unsubscriptions, etc.
-		if err := client.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := client.callbackSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Callback server crashed %v\n", err)
 		}
 	}()
@@ -117,8 +141,10 @@ func (sc *Client) DiscoverTopic(topic string) {
 	sc.topicsToSelf[topic] = self
 }
 
-func (sc *Client) ShutDown() {
-	if err := sc.srv.Shutdown(context.Background()); err != nil {
+// Shutdown is called to indicate that a Client is no longer going to be used.
+// It sends a shutdown signal to the Client's callback server, freeing up the port to be used by another service.
+func (sc *Client) Shutdown() {
+	if err := sc.callbackSrv.Shutdown(context.Background()); err != nil {
 		log.Fatalf("Failed to shutdown callback server %v\n", err)
 	}
 }

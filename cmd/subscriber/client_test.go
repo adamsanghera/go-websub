@@ -26,7 +26,7 @@ func TestClient_SuccessfulSubscription(t *testing.T) {
 		}
 	})
 
-	sc.ShutDown()
+	sc.Shutdown()
 	httpmock.DeactivateAndReset()
 }
 

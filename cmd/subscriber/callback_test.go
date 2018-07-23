@@ -94,7 +94,7 @@ func TestClient_handleAckedSubscription(t *testing.T) {
 		}
 	})
 
-	sc.ShutDown()
+	sc.Shutdown()
 	httpmock.DeactivateAndReset()
 }
 

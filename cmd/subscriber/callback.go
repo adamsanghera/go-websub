@@ -50,11 +50,17 @@ func (sc *Client) handleSubscription(w http.ResponseWriter, query url.Values) {
 
 	// 1
 	if _, exists := sc.pendingSubs[topic]; exists {
-		// 2
 
 		sc.aSubsMut.Lock()
 		defer sc.aSubsMut.Unlock()
 
+		// 2
+		// BUG(adam) If we unsubscribe from a topic, this routine is non-cancellable.
+		// There a few different ways we could fix this:
+		// 1. Pass in a context object, that we index by topic.  On unsubscribe, call the cancel func.
+		// 2. Perform some check in this function against 'activeSubs', to ensure that we still want it to be active.
+		//
+		// Number 1 is probably the cleanest, but we'll see!
 		go func() {
 			seconds, err := strconv.Atoi(leaseSeconds)
 			if err != nil {
