@@ -9,8 +9,8 @@ import (
 	"gopkg.in/jarcoal/httpmock.v1"
 )
 
-func getBodyFromFile(testCode int) string {
-	fname := fmt.Sprintf("test-assets/%d.html", testCode)
+func getBodyFromFile(testCode string) string {
+	fname := fmt.Sprintf("test-assets/%s.html", testCode)
 
 	if bytes, err := ioutil.ReadFile(fname); err == nil {
 		return string(bytes)
@@ -24,7 +24,7 @@ func TestDiscoverTopic(t *testing.T) {
 	defer httpmock.DeactivateAndReset()
 	httpmock.RegisterResponder("GET", "http://example.com/feed",
 		func(req *http.Request) (*http.Response, error) {
-			resp := httpmock.NewStringResponse(200, getBodyFromFile(100))
+			resp := httpmock.NewStringResponse(200, getBodyFromFile("100"))
 			resp.Header.Set("Link", "<https://hub.example.com/>; rel=\"hub\", <http://example.com/feed>; rel=\"self\"")
 			return resp, nil
 		})
@@ -42,7 +42,7 @@ func TestDiscoverTopic(t *testing.T) {
 	httpmock.Reset()
 	httpmock.RegisterResponder("GET", "http://example.com/feed",
 		func(req *http.Request) (*http.Response, error) {
-			resp := httpmock.NewStringResponse(200, getBodyFromFile(101))
+			resp := httpmock.NewStringResponse(200, getBodyFromFile("101"))
 			resp.Header.Set("Content-type", "text/html")
 			return resp, nil
 		})
@@ -61,4 +61,75 @@ func TestDiscoverTopic(t *testing.T) {
 		TODO(adam) add tests that have protocol-breaking responses,
 		and verify that our protocol doesn't parse them
 	*/
+}
+
+func TestMisplacedLinksHTML(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("GET", "http://example.com/feed",
+		func(req *http.Request) (*http.Response, error) {
+			resp := httpmock.NewStringResponse(200, getBodyFromFile("101-misplaced"))
+			resp.Header.Set("Content-type", "text/html")
+			return resp, nil
+		})
+
+	// Links are not in the head, so discovery is expected to return
+	// with an empty set and string
+	t.Run("Fails to find links in the html head", func(t *testing.T) {
+		hubs, self := DiscoverTopic("http://example.com/feed")
+		if len(hubs) != 0 {
+			t.Error("Found hub links")
+		}
+		if self != "" {
+			t.Error("Found self links")
+		}
+	})
+}
+
+func TestNoHeadHTML(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("GET", "http://example.com/feed",
+		func(req *http.Request) (*http.Response, error) {
+			resp := httpmock.NewStringResponse(200, getBodyFromFile("101-no-head"))
+			resp.Header.Set("Content-type", "text/html")
+			return resp, nil
+		})
+
+	// There's no head, so we shouldn't find any links!
+	t.Run("Fails to find links in the html head", func(t *testing.T) {
+		hubs, self := DiscoverTopic("http://example.com/feed")
+		if len(hubs) != 0 {
+			t.Error("Found hub links")
+		}
+		if self != "" {
+			t.Error("Found self links")
+		}
+	})
+}
+
+func TestMalformedHTML(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder("GET", "http://example.com/feed",
+		func(req *http.Request) (*http.Response, error) {
+			resp := httpmock.NewStringResponse(200, getBodyFromFile("101-malformed"))
+			resp.Header.Set("Content-type", "text/html")
+			return resp, nil
+		})
+
+	// The HTML file itself isn't correct (i.e. can't be parsed)
+	// so parsing the file shouldn't find anything
+	t.Run("Fails to find links in the html head", func(t *testing.T) {
+		hubs, self := DiscoverTopic("http://example.com/feed")
+		if len(hubs) != 0 {
+			t.Error("Found hub links")
+		}
+		if self != "" {
+			t.Error("Found self links")
+		}
+	})
 }

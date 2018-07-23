@@ -40,7 +40,7 @@ func DiscoverTopic(topic string) (map[string]struct{}, string) {
 	if strings.Contains(contentType, "text/html") {
 		return parseLinksFromHTML(resp.Body)
 	} else if strings.Contains(contentType, "text/xml") {
-		// muh xml
+		// TODO(adam) handle xml [atom, rss, etc.]
 	}
 
 	return make(map[string]struct{}), ""
@@ -70,7 +70,6 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 	tokenizer := html.NewTokenizer(htmlReader)
 
 	hubURLs = make(map[string]struct{})
-
 	inHead := false
 	parsing := true
 	for parsing {
@@ -114,6 +113,7 @@ func parseLinksFromHTML(htmlReader io.Reader) (hubURLs map[string]struct{}, self
 			tn, _ := tokenizer.TagName()
 			if len(tn) == 4 {
 				if string(tn) == "html" {
+
 					parsing = false
 					break
 				}
