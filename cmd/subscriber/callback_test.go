@@ -166,15 +166,6 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Fatalf("Status code is %d instead of 200", resp.StatusCode)
 		}
-
-		// Should have gotten the challenge parrotted back
-		if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
-			if string(respBody) != "" {
-				t.Fatalf("Response is {%v} instead of an empty string", respBody)
-			}
-		} else {
-			t.Fatalf("Failed to parse body with err {%v}", err)
-		}
 	})
 
 	sc.Shutdown()
