@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	httpmock "gopkg.in/jarcoal/httpmock.v1"
 )
@@ -124,6 +125,8 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 			return resp, nil
 		})
 
+	time.Sleep(5 * time.Millisecond)
+
 	t.Run("Subscription immediately denied", func(t *testing.T) {
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 
@@ -165,7 +168,6 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 		if _, exists := sc.pendingSubs["http://example.com/feed"]; exists {
 			t.Fatalf("Pending subscription not deleted upon denial")
 		}
-
 	})
 
 	sc.Shutdown()
