@@ -160,12 +160,12 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 		httpmock.Deactivate()
 
 		// Make the request
-		resp, _ := http.DefaultClient.Do(req)
+		http.DefaultClient.Do(req)
 
-		// Should be a 200
-		if resp.StatusCode != 200 {
-			t.Fatalf("Status code is %d instead of 200", resp.StatusCode)
+		if _, exists := sc.pendingSubs["http://example.com/feed"]; exists {
+			t.Fatalf("Pending subscription not deleted upon denial")
 		}
+
 	})
 
 	sc.Shutdown()
