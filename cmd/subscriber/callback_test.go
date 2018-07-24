@@ -42,7 +42,7 @@ func TestSuccessfulSubscription(t *testing.T) {
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 
 		// The POST is made in here
-		sc.SubscribeToTopic("http://example.com/feed")
+		sc.Subscribe("http://example.com/feed")
 
 		if _, ok := sc.pendingSubs["http://example.com/feed"]; !ok {
 			t.Fatal("Subscription not registered as pending")
@@ -131,7 +131,7 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 		sc.topicsToSelf["http://example.com/feed"] = "http://example.com/feed"
 
 		// The POST is made in here
-		sc.SubscribeToTopic("http://example.com/feed")
+		sc.Subscribe("http://example.com/feed")
 
 		if _, ok := sc.pendingSubs["http://example.com/feed"]; !ok {
 			t.Fatal("Subscription not registered as pending")

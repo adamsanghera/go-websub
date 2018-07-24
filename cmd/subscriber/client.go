@@ -12,6 +12,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
@@ -24,7 +25,7 @@ type Client struct {
 
 	pendingSubs   map[string]string // perhaps point to a boolean sticky/not-sticky?
 	pendingUnSubs map[string]struct{}
-	activeSubs    map[string]struct{}
+	activeSubs    map[string]context.CancelFunc // Holds the cancel funcs for sticky subs
 
 	tthMut *sync.Mutex
 	ttsMut *sync.Mutex
@@ -48,7 +49,7 @@ func NewClient(port string) *Client {
 
 		pendingSubs:   make(map[string]string),
 		pendingUnSubs: make(map[string]struct{}),
-		activeSubs:    make(map[string]struct{}),
+		activeSubs:    make(map[string]context.CancelFunc),
 
 		tthMut: &sync.Mutex{},
 		ttsMut: &sync.Mutex{},
@@ -63,13 +64,17 @@ func NewClient(port string) *Client {
 
 	client.callbackSrv.Handler = client.callbackMux
 
+	client.callbackMux.HandleFunc("/callback/", client.CallbackSwitch)
+	// Handles all callbacks for subscriptions, unsubscriptions, etc.
+
 	go func() {
-		client.callbackMux.HandleFunc("/callback/", client.CallbackSwitch)
-		// Handles all callbacks for subscriptions, unsubscriptions, etc.
 		if err := client.callbackSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Callback server crashed %v\n", err)
 		}
 	}()
+
+	// Add some delay to give the server time to spin up
+	time.Sleep(1 * time.Millisecond)
 
 	return client
 }

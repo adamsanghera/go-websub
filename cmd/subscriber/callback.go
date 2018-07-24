@@ -1,6 +1,7 @@
 package subscriber
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -55,26 +56,13 @@ func (sc *Client) handleSubscription(w http.ResponseWriter, query url.Values) {
 		defer sc.aSubsMut.Unlock()
 
 		// 2
-		// BUG(adam) If we unsubscribe from a topic, this routine is non-cancellable.
-		// There a few different ways we could fix this:
-		// 1. Pass in a context object, that we index by topic.  On unsubscribe, call the cancel func.
-		// 2. Perform some check in this function against 'activeSubs', to ensure that we still want it to be active.
-		//
-		// Number 1 is probably the cleanest, but we'll see!
-		go func() {
-			seconds, err := strconv.Atoi(leaseSeconds)
-			if err != nil {
-				panic(err)
-			}
-			// Sleep for some proportion of the lease time
-			time.Sleep(time.Duration(2*seconds/3) * time.Second)
+		seconds, err := strconv.Atoi(leaseSeconds)
+		if err != nil {
+			panic(err)
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(seconds*2/3))
 
-			// If there's an error, log and delete the topic from subscribed list
-			if err = sc.SubscribeToTopic(topic); err != nil {
-				log.Printf("Encountered an error while renewing subscription {%v}", err)
-				delete(sc.activeSubs, topic)
-			}
-		}()
+		go sc.stickySubscription(ctx, topic)
 
 		// 3
 		w.WriteHeader(200)
@@ -84,9 +72,7 @@ func (sc *Client) handleSubscription(w http.ResponseWriter, query url.Values) {
 		delete(sc.pendingSubs, topic)
 
 		// 5
-		if _, allocated := sc.activeSubs[topic]; !allocated {
-			sc.activeSubs[topic] = struct{}{}
-		}
+		sc.activeSubs[topic] = cancel
 
 		return
 	}
@@ -134,6 +120,7 @@ func (sc *Client) handleUnsubscription(w http.ResponseWriter, query url.Values) 
 
 	log.Printf("Verifying unsub from topic %s.  Challenge provided: {%s}.", topic, challenge)
 
+	// Remove from pending (if it exists)
 	if _, exists := sc.pendingUnSubs[topic]; exists {
 		w.WriteHeader(200)
 		w.Write([]byte(challenge))
@@ -141,7 +128,31 @@ func (sc *Client) handleUnsubscription(w http.ResponseWriter, query url.Values) 
 		return
 	}
 
-	if _, exists := sc.activeSubs[topic]; exists {
+	// Call the cancel function
+	if cancelFunc, exists := sc.activeSubs[topic]; exists {
+		// Need to unlock this, so that stickySubscription can acquire
+		sc.aSubsMut.Unlock()
+		cancelFunc()
+	}
+}
+
+func (sc *Client) stickySubscription(ctx context.Context, topic string) {
+	// Block until cancelled or deadline
+	<-ctx.Done()
+
+	sc.aSubsMut.Lock()
+	defer sc.aSubsMut.Unlock()
+
+	// If the context was cancelled, just die gracefully, and remove the active sub
+	if ctx.Err() == context.Canceled {
+		delete(sc.activeSubs, topic)
+		return
+	}
+
+	// Otherwise, keep on trying to subscribe
+	if err := sc.Subscribe(topic); err != nil {
+		// If there's an error, log and delete the topic from subscribed list
+		log.Printf("Encountered an error while renewing subscription {%v}", err)
 		delete(sc.activeSubs, topic)
 	}
 }

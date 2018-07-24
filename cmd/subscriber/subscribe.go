@@ -13,11 +13,11 @@ import (
 	"strings"
 )
 
-// SubscribeToTopic pings the topic url associated with a topic.
+// Subscribe pings the topic url associated with a topic.
 // If that topic has no associated, returns an error
 // Handles redirect responses (307 and 308) gracefully
 // Passes any errors up, gracefully
-func (sc *Client) SubscribeToTopic(topic string) error {
+func (sc *Client) Subscribe(topic string) error {
 
 	sc.ttsMut.Lock()
 
@@ -67,10 +67,10 @@ func (sc *Client) processSubscriptionResponse(
 			return nil
 		case 307:
 			log.Printf("Temporary redirect response, trying new address...")
-			return sc.SubscribeToTopic(resp.Header.Get("Location"))
+			return sc.Subscribe(resp.Header.Get("Location"))
 		case 308:
 			log.Printf("Permanent redirect response, trying new address...")
-			return sc.SubscribeToTopic(resp.Header.Get("Location"))
+			return sc.Subscribe(resp.Header.Get("Location"))
 		default:
 			return fmt.Errorf("Error in making subscription.  Code {%d}, Header{%v}, Details {%s}",
 				resp.StatusCode, resp.Header, respBody)
