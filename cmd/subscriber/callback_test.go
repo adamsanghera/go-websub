@@ -1,7 +1,6 @@
 package subscriber
 
 import (
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -161,10 +160,7 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 		httpmock.Deactivate()
 
 		// Make the request
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil && err != io.EOF {
-			panic(err)
-		}
+		resp, _ := http.DefaultClient.Do(req)
 
 		// Should be a 200
 		if resp.StatusCode != 200 {
