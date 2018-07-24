@@ -162,7 +162,7 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 
 		// Make the request
 		resp, err := http.DefaultClient.Do(req)
-		if err != nil || err != io.EOF {
+		if err != nil && err != io.EOF {
 			panic(err)
 		}
 
