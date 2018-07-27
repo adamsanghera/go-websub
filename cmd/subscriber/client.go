@@ -127,4 +127,13 @@ func (sc *Client) Shutdown() {
 	if err := sc.callbackSrv.Shutdown(context.Background()); err != nil {
 		log.Fatalf("Failed to shutdown callback server %v\n", err)
 	}
+
+	sc.aSubsMut.Lock()
+	defer sc.aSubsMut.Unlock()
+
+	// Halt all of our active subscriptions
+	for _, sub := range sc.activeSubs {
+		sub.cancel()
+	}
+
 }

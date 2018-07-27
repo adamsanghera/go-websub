@@ -103,7 +103,7 @@ func TestDenialOnActiveSubscription(t *testing.T) {
 
 	RegisterSuccessfulValidationAck(t, &callback)
 
-	t.Run("Everything works", func(t *testing.T) {
+	t.Run("1", func(t *testing.T) {
 		sc.ttsMut.Lock()
 		sc.topicsToSelf[topicURL] = topicURL
 		sc.ttsMut.Unlock()
@@ -127,11 +127,25 @@ func TestDenialOnActiveSubscription(t *testing.T) {
 
 		sc.aSubsMut.Lock()
 		if _, exists := sc.activeSubs[topicURL]; !exists {
-			t.Fatal("Subscription is not in active set, even though it was denied")
+			t.Fatal("Subscription is not in active set, even though it was accepted")
 		}
 		sc.aSubsMut.Unlock()
 
-		// TODO(adam) finish this!
+		DenyCallback(t, topicURL, callback)
+
+		time.Sleep(3 * time.Second)
+
+		sc.aSubsMut.Lock()
+		if _, exists := sc.activeSubs[topicURL]; exists {
+			t.Fatal("Subscription is in active set, even though it was denied")
+		}
+		sc.aSubsMut.Unlock()
+
+		sc.pSubsMut.Lock()
+		if _, exists := sc.pendingSubs[topicURL]; exists {
+			t.Fatal("Subscription is in pending set, even though it was denied")
+		}
+		sc.pSubsMut.Unlock()
 
 	})
 

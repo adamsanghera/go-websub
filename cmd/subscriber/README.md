@@ -41,3 +41,11 @@ The client has three stages in its life cycle.
 
 - Cient is a long-running service
 - Sticky subscriptions (i.e. auto-renewing subscriptions) are the only subscriptions we want
+
+## TODO's
+
+- Tests/Benchmarks that throttle parallelism (am pretty confident that this will work, but that efficiency can be improved)
+
+## Whims
+
+- Think about how we can leverage channels instead of mutexes.

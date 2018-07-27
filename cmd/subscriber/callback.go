@@ -178,14 +178,13 @@ func (sc *Client) renewSubscription(ctx context.Context, topic string) {
 	// Block until cancelled or timeout
 	<-ctx.Done()
 
-	sc.aSubsMut.Lock()
-	defer sc.aSubsMut.Unlock()
-
 	// If the context was cancelled, just die gracefully.
 	// NOTE(adam): This function trusts that the canceller handles clean-up of active subscriptions
 	if ctx.Err() == context.Canceled {
 		return
 	}
+
+	log.Printf("Attempting to renew topic %s\n", topic)
 
 	// Otherwise, keep on trying to subscribe
 	if err := sc.Subscribe(topic); err != nil {
