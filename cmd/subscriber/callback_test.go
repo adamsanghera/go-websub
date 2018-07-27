@@ -20,7 +20,7 @@ func TestSuccessfulSubscription(t *testing.T) {
 	sc := NewClient("4000")
 
 	// When the client attempts to subscribe to the topicURL, they'll get a 202
-	RegisterSuccessfulValidationAck(t, &callback)
+	registerSuccessfulValidationAck(t, &callback)
 
 	t.Run("Everything works", func(t *testing.T) {
 		sc.topicsToSelf[topicURL] = topicURL
@@ -34,7 +34,7 @@ func TestSuccessfulSubscription(t *testing.T) {
 		}
 		sc.pSubsMut.Unlock()
 
-		VerifyCallback(t, topicURL, callback)
+		verifyCallback(t, topicURL, callback)
 
 		sc.aSubsMut.Lock()
 		if _, exists := sc.activeSubs[topicURL]; !exists {
@@ -60,7 +60,7 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 	sc := NewClient("4000")
 
 	// When the client attempts to subscribe to the topicURL, they'll get a 202
-	RegisterSuccessfulValidationAck(t, &callback)
+	registerSuccessfulValidationAck(t, &callback)
 
 	t.Run("Subscription immediately denied", func(t *testing.T) {
 		sc.topicsToSelf[topicURL] = topicURL
@@ -72,7 +72,7 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 			t.Fatal("Subscription not registered as pending")
 		}
 
-		DenyCallback(t, topicURL, callback)
+		denyCallback(t, topicURL, callback)
 
 		sc.pSubsMut.Lock()
 		if _, exists := sc.pendingSubs[topicURL]; exists {
@@ -91,8 +91,38 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 	httpmock.DeactivateAndReset()
 }
 
-func TestStaticUnsubscribe(t *testing.T) {
+func TestUnsubscribe(t *testing.T) {
 	// TODO(adam): Test unsubscribe
+	httpmock.Activate()
+	var callback string
+	sc := NewClient("4000")
+
+	registerSuccessfulValidationAck(t, &callback)
+
+	t.Run("Test unsubscribe", func(t *testing.T) {
+		createSubscription(t, topicURL, sc, &callback)
+
+		err := sc.Unsubscribe(topicURL)
+		if err != nil {
+			t.Fatalf("Encountered error while unsubscribing {%v}", err)
+		}
+
+		sc.aSubsMut.Lock()
+		if _, exists := sc.activeSubs[topicURL]; exists {
+			t.Fatal("Subscription is in active set, even though it was unsub'd")
+		}
+		sc.aSubsMut.Unlock()
+
+		sc.pUnSubsMut.Lock()
+		if _, exists := sc.pendingSubs[topicURL]; exists {
+			t.Fatal("Unsubscription is in pending set, even though it was completed")
+		}
+		sc.pUnSubsMut.Unlock()
+
+	})
+
+	sc.Shutdown()
+	httpmock.DeactivateAndReset()
 }
 
 func TestDenialOnActiveSubscription(t *testing.T) {
@@ -101,37 +131,12 @@ func TestDenialOnActiveSubscription(t *testing.T) {
 	var callback string
 	sc := NewClient("4000")
 
-	RegisterSuccessfulValidationAck(t, &callback)
+	registerSuccessfulValidationAck(t, &callback)
 
 	t.Run("1", func(t *testing.T) {
-		sc.ttsMut.Lock()
-		sc.topicsToSelf[topicURL] = topicURL
-		sc.ttsMut.Unlock()
+		createSubscription(t, topicURL, sc, &callback)
 
-		// The POST request is made in here
-		sc.Subscribe(topicURL)
-
-		sc.pSubsMut.Lock()
-		if _, ok := sc.pendingSubs[topicURL]; !ok {
-			t.Fatal("Subscription not registered as pending")
-		}
-		sc.pSubsMut.Unlock()
-
-		VerifyCallback(t, topicURL, callback)
-
-		sc.pSubsMut.Lock()
-		if _, exists := sc.pendingSubs[topicURL]; exists {
-			t.Fatalf("Subscription is in pending set, even though it was accepted")
-		}
-		sc.pSubsMut.Unlock()
-
-		sc.aSubsMut.Lock()
-		if _, exists := sc.activeSubs[topicURL]; !exists {
-			t.Fatal("Subscription is not in active set, even though it was accepted")
-		}
-		sc.aSubsMut.Unlock()
-
-		DenyCallback(t, topicURL, callback)
+		denyCallback(t, topicURL, callback)
 
 		time.Sleep(3 * time.Second)
 
@@ -155,10 +160,10 @@ func TestDenialOnActiveSubscription(t *testing.T) {
 	// Should be removed from active/pending
 }
 
-// VerifyCallback will send a verification POST to the given callback.
+// verifyCallback will send a verification POST to the given callback.
 // It expects to receive a parrotted challenge in response.
 // httpmock is deactivated initially (to hit the callback), and reactivated on exit.
-func VerifyCallback(t *testing.T, topicURL string, callback string) {
+func verifyCallback(t *testing.T, topicURL string, callback string) {
 	// Turn off httpmock, so that we hit a live address
 	httpmock.Deactivate()
 	defer httpmock.Activate()
@@ -201,10 +206,10 @@ func VerifyCallback(t *testing.T, topicURL string, callback string) {
 	}
 }
 
-// DenyCallback will send a rejection POST to the given callback
+// denyCallback will send a rejection POST to the given callback
 // It expects to receive an empty body back, with a 200 header.
 // httpmock is deactivated initially (to hit the callback), and reactivated on exit.
-func DenyCallback(t *testing.T, topicURL string, callback string) {
+func denyCallback(t *testing.T, topicURL string, callback string) {
 	// Turn off httpmock, so that we hit a live address
 	httpmock.Deactivate()
 	defer httpmock.Activate()
@@ -245,7 +250,7 @@ func DenyCallback(t *testing.T, topicURL string, callback string) {
 	}
 }
 
-func RegisterSuccessfulValidationAck(t *testing.T, callback *string) {
+func registerSuccessfulValidationAck(t *testing.T, callback *string) {
 	// When the subscription request is made, respond with a 202
 	httpmock.RegisterResponder("POST", topicURL,
 		func(req *http.Request) (*http.Response, error) {
@@ -267,4 +272,34 @@ func RegisterSuccessfulValidationAck(t *testing.T, callback *string) {
 
 	// Give the super fast Travis servers time to let our client register its callback handler
 	time.Sleep(5 * time.Millisecond)
+}
+
+// fakes discovery of a topic, and runs through the creation of a subscription
+func createSubscription(t *testing.T, topicURL string, sc *Client, callback *string) {
+	// fake discovery
+	sc.ttsMut.Lock()
+	sc.topicsToSelf[topicURL] = topicURL
+	sc.ttsMut.Unlock()
+
+	sc.Subscribe(topicURL)
+
+	sc.pSubsMut.Lock()
+	if _, ok := sc.pendingSubs[topicURL]; !ok {
+		t.Fatal("Subscription not registered as pending")
+	}
+	sc.pSubsMut.Unlock()
+
+	verifyCallback(t, topicURL, *callback)
+
+	sc.aSubsMut.Lock()
+	if _, exists := sc.activeSubs[topicURL]; !exists {
+		t.Fatal("Subscription is not in active set, even though it was accepted")
+	}
+	sc.aSubsMut.Unlock()
+
+	sc.pSubsMut.Lock()
+	if _, exists := sc.pendingSubs[topicURL]; exists {
+		t.Fatal("Subscription is in pending set, even though it was accepted")
+	}
+	sc.pSubsMut.Unlock()
 }
