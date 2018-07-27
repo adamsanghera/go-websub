@@ -17,22 +17,29 @@ import (
 	"github.com/adamsanghera/go-websub/internal/discovery"
 )
 
-// Client subscribes to topic hubs, following the websub protocol
+// subscription represents an active subscription
+type activeSubscription struct {
+	callbackURL string
+	cancel      context.CancelFunc
+}
+
+// Client creates, maintains, and release to topic hubs, following the websub protocol
 type Client struct {
-	port         string
+	port string
+
+	// vars related to discovery
 	topicsToHubs map[string]map[string]struct{}
 	topicsToSelf map[string]string
+	tthMut       *sync.Mutex
+	ttsMut       *sync.Mutex
 
+	// vars related to (un)subscriptions
 	pendingSubs   map[string]string // perhaps point to a boolean sticky/not-sticky?
-	pendingUnSubs map[string]struct{}
-	activeSubs    map[string]context.CancelFunc // Holds the cancel funcs for sticky subs
-
-	tthMut *sync.Mutex
-	ttsMut *sync.Mutex
-
-	pSubsMut   *sync.Mutex
-	pUnSubsMut *sync.Mutex
-	aSubsMut   *sync.Mutex
+	pendingUnSubs map[string]string
+	activeSubs    map[string]*activeSubscription // Holds the cancel funcs for sticky subs
+	pSubsMut      *sync.Mutex
+	pUnSubsMut    *sync.Mutex
+	aSubsMut      *sync.Mutex
 
 	callbackMux *http.ServeMux
 	callbackSrv *http.Server
@@ -44,19 +51,19 @@ type Client struct {
 func NewClient(port string) *Client {
 	// Create the client
 	client := &Client{
+		port: port,
+
 		topicsToHubs: make(map[string]map[string]struct{}),
 		topicsToSelf: make(map[string]string),
+		tthMut:       &sync.Mutex{},
+		ttsMut:       &sync.Mutex{},
 
 		pendingSubs:   make(map[string]string),
-		pendingUnSubs: make(map[string]struct{}),
-		activeSubs:    make(map[string]context.CancelFunc),
-
-		tthMut: &sync.Mutex{},
-		ttsMut: &sync.Mutex{},
-
-		pSubsMut:   &sync.Mutex{},
-		pUnSubsMut: &sync.Mutex{},
-		aSubsMut:   &sync.Mutex{},
+		pendingUnSubs: make(map[string]string),
+		activeSubs:    make(map[string]*activeSubscription),
+		pSubsMut:      &sync.Mutex{},
+		pUnSubsMut:    &sync.Mutex{},
+		aSubsMut:      &sync.Mutex{},
 
 		callbackMux: http.NewServeMux(),
 		callbackSrv: &http.Server{Addr: ":" + port},

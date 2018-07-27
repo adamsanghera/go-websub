@@ -21,49 +21,34 @@ func (sc *Client) Subscribe(topic string) error {
 
 	sc.ttsMut.Lock()
 
-	// I'm not confident that this is how we want to get the URL
+	// NOTE(adam): I'm not confident that this is how we want to get or store these urls
 	if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
 		sc.ttsMut.Unlock() // It is ok if this state changes from underneath us
 
-		// Generate some random data
-		data := make(url.Values)
-		randomURI := make([]byte, 16)
-		rand.Read(randomURI)
+		callback := generateCallback()
+		req := buildSubscriptionRequest(callback, topicURL)
 
-		// Prepare the body
-		data.Set("hub.callback", hex.EncodeToString(randomURI))
-		data.Set("hub.mode", "subscribe")
-		data.Set("hub.topic", topicURL)
-
-		// Form the request
-		req, _ := http.NewRequest("POST", topicURL, strings.NewReader(data.Encode()))
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-		req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
-
-		// Make the request
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
 			panic(err)
 		}
 
-		return sc.processSubscriptionResponse(resp, topicURL, hex.EncodeToString(randomURI), topic)
+		return sc.processSubscriptionResponse(resp, topicURL, callback)
 	}
 
 	sc.ttsMut.Unlock()
 	return errors.New("No URL known for the given topic")
 }
 
-func (sc *Client) processSubscriptionResponse(
-	resp *http.Response, topicURL string, callbackURI string, topic string) error {
-	// Process the response, including any redirects or errors
+// processes a response to the subscription request
+func (sc *Client) processSubscriptionResponse(resp *http.Response, topicURL string, callbackURI string) error {
 	if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
 		switch resp.StatusCode {
 		case 202:
-			log.Printf("Successfully submitted subscription request to topic %s on url %s, pending validation", topic, topicURL)
 			sc.pSubsMut.Lock()
-			defer sc.pSubsMut.Unlock()
 			sc.pendingSubs[topicURL] = callbackURI
+			sc.pSubsMut.Unlock()
 			return nil
 		case 307:
 			log.Printf("Temporary redirect response, trying new address...")
@@ -78,4 +63,25 @@ func (sc *Client) processSubscriptionResponse(
 	} else {
 		return err
 	}
+}
+
+// helper function to generate a 16-byte (32 chars) string
+func generateCallback() string {
+	randomURI := make([]byte, 16)
+	rand.Read(randomURI)
+	return hex.EncodeToString(randomURI)
+}
+
+// builds a pub-sub compliant subscription request, given a topic url and callback
+func buildSubscriptionRequest(callback string, topic string) *http.Request {
+	data := make(url.Values)
+	data.Set("hub.callback", callback)
+	data.Set("hub.mode", "subscribe")
+	data.Set("hub.topic", topic)
+
+	req, _ := http.NewRequest("POST", topic, strings.NewReader(data.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Length", strconv.Itoa(len(data.Encode())))
+
+	return req
 }
