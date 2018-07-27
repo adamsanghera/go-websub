@@ -36,6 +36,7 @@ The client has three stages in its life cycle.
    - Should never panic, only log errors
 3. Shutdown
    - Sends a shutdown signal to the client's callback server
+   - Prunes active subscriptions, sending cancel signals to all sleeping routines [ should have some way of short-circuiting outgoing subscription calls, too, so that those privileged few that escape this cancel barrage don't go on living ]
 
 ## Assumptions
 
