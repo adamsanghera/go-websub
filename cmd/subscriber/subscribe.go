@@ -34,7 +34,7 @@ func (sc *Client) Subscribe(topic string) error {
 			panic(err)
 		}
 
-		return sc.processSubscriptionResponse(resp, topicURL, callback)
+		return sc.processSubscriptionResponse(resp, topicURL, callback, false)
 	}
 
 	sc.ttsMut.Unlock()
@@ -42,13 +42,19 @@ func (sc *Client) Subscribe(topic string) error {
 }
 
 // processes a response to the subscription request
-func (sc *Client) processSubscriptionResponse(resp *http.Response, topicURL string, callbackURI string) error {
+func (sc *Client) processSubscriptionResponse(resp *http.Response, topicURL string, callbackURI string, unsub bool) error {
 	if respBody, err := ioutil.ReadAll(resp.Body); err == nil {
 		switch resp.StatusCode {
 		case 202:
-			sc.pSubsMut.Lock()
-			sc.pendingSubs[topicURL] = callbackURI
-			sc.pSubsMut.Unlock()
+			if unsub {
+				sc.pUnSubsMut.Lock()
+				sc.pendingUnSubs[topicURL] = callbackURI
+				sc.pUnSubsMut.Unlock()
+			} else {
+				sc.pSubsMut.Lock()
+				sc.pendingSubs[topicURL] = callbackURI
+				sc.pSubsMut.Unlock()
+			}
 			return nil
 		case 307:
 			log.Printf("Temporary redirect response, trying new address...")

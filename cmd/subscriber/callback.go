@@ -151,7 +151,7 @@ func (sc *Client) handleUnsubscription(w http.ResponseWriter, endpoint string, q
 			// 2 This isn't necessarily an error, but it is abnormal behavior, worth logging
 			log.Println("UNSUB anomaly: unsub pending, sub not active. Within spec, but rare. Buy a lotto ticket.")
 		}
-		delete(sc.pendingSubs, topic)
+		delete(sc.pendingUnSubs, topic)
 
 		// From 5.3.1: The subscriber MUST respond with an 2xx code,
 		//   with response body equal to the hub.challenge param.
@@ -166,10 +166,9 @@ func (sc *Client) handleUnsubscription(w http.ResponseWriter, endpoint string, q
 		//   If the subscriber does not agree with the action, the subscriber MUST respond with a 404 "Not Found" response.
 		//
 		// Accordingly, we should not mutate any client state here, just spit back a 404.
+		log.Println("UNSUB anomaly: unsub not pending, sub not active. Hub thinks client is requesting unsub, client disagrees.")
 		w.WriteHeader(404)
 		w.Write([]byte(challenge))
-
-		log.Println("UNSUB anomaly: unsub not pending, sub not active. Hub thinks client is requesting unsub, client disagrees.")
 	}
 }
 

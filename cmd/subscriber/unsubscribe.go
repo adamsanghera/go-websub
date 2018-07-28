@@ -8,10 +8,10 @@ import (
 	"strings"
 )
 
-// Unsubscribe pings the topic url associated with a topic.
+// Unsubscribe unsubs from the given topic url.
 // If that topic has no associated url, returns an error
 // Handles redirect responses (307 and 308) gracefully
-// Passes any errors up, gracefully
+// Gracefully passes any errors up
 func (sc *Client) Unsubscribe(topic string) error {
 	sc.ttsMut.Lock()
 
@@ -28,13 +28,11 @@ func (sc *Client) Unsubscribe(topic string) error {
 			panic(err)
 		}
 
-		return sc.processSubscriptionResponse(resp, topicURL, callback)
+		return sc.processSubscriptionResponse(resp, topicURL, callback, true)
 	}
 
 	sc.ttsMut.Unlock()
 	return errors.New("No URL known for the given topic")
-
-	return nil
 }
 
 // builds a pub-sub compliant subscription request, given a topic url and callback

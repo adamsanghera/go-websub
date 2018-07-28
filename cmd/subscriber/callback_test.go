@@ -34,7 +34,7 @@ func TestSuccessfulSubscription(t *testing.T) {
 		}
 		sc.pSubsMut.Unlock()
 
-		verifyCallback(t, topicURL, callback)
+		verifyCallback(t, topicURL, callback, "subscribe")
 
 		sc.aSubsMut.Lock()
 		if _, exists := sc.activeSubs[topicURL]; !exists {
@@ -92,7 +92,6 @@ func TestImmediatelyDeniedSubscription(t *testing.T) {
 }
 
 func TestUnsubscribe(t *testing.T) {
-	// TODO(adam): Test unsubscribe
 	httpmock.Activate()
 	var callback string
 	sc := NewClient("4000")
@@ -107,6 +106,8 @@ func TestUnsubscribe(t *testing.T) {
 			t.Fatalf("Encountered error while unsubscribing {%v}", err)
 		}
 
+		verifyCallback(t, topicURL, callback, "unsubscribe")
+
 		sc.aSubsMut.Lock()
 		if _, exists := sc.activeSubs[topicURL]; exists {
 			t.Fatal("Subscription is in active set, even though it was unsub'd")
@@ -114,7 +115,28 @@ func TestUnsubscribe(t *testing.T) {
 		sc.aSubsMut.Unlock()
 
 		sc.pUnSubsMut.Lock()
+		if _, exists := sc.pendingUnSubs[topicURL]; exists {
+			t.Fatal("Unsubscription is in pending set, even though it was completed")
+		}
+		sc.pUnSubsMut.Unlock()
+
+		// Wait a bit of time, to make sure that we cancelled the sub renewal routine
+		time.Sleep(3 * time.Second)
+
+		sc.aSubsMut.Lock()
+		if _, exists := sc.activeSubs[topicURL]; exists {
+			t.Fatal("Subscription is in active set, even though it was unsub'd")
+		}
+		sc.aSubsMut.Unlock()
+
+		sc.pSubsMut.Lock()
 		if _, exists := sc.pendingSubs[topicURL]; exists {
+			t.Fatal("Subscription is in pending set, even though it was unsub'd")
+		}
+		sc.pSubsMut.Unlock()
+
+		sc.pUnSubsMut.Lock()
+		if _, exists := sc.pendingUnSubs[topicURL]; exists {
 			t.Fatal("Unsubscription is in pending set, even though it was completed")
 		}
 		sc.pUnSubsMut.Unlock()
@@ -156,21 +178,19 @@ func TestDenialOnActiveSubscription(t *testing.T) {
 
 	sc.Shutdown()
 	httpmock.DeactivateAndReset()
-	// Should cancel recurring re-sub requests
-	// Should be removed from active/pending
 }
 
 // verifyCallback will send a verification POST to the given callback.
 // It expects to receive a parrotted challenge in response.
 // httpmock is deactivated initially (to hit the callback), and reactivated on exit.
-func verifyCallback(t *testing.T, topicURL string, callback string) {
+func verifyCallback(t *testing.T, topicURL string, callback string, mode string) {
 	// Turn off httpmock, so that we hit a live address
 	httpmock.Deactivate()
 	defer httpmock.Activate()
 
 	// Message body
 	data := make(url.Values)
-	data.Set("hub.mode", "subscribe")
+	data.Set("hub.mode", mode)
 	data.Set("hub.topic", topicURL)
 	data.Set("hub.challenge", "kitties")
 	data.Set("hub.lease_seconds", "3")
@@ -289,7 +309,7 @@ func createSubscription(t *testing.T, topicURL string, sc *Client, callback *str
 	}
 	sc.pSubsMut.Unlock()
 
-	verifyCallback(t, topicURL, *callback)
+	verifyCallback(t, topicURL, *callback, "subscribe")
 
 	sc.aSubsMut.Lock()
 	if _, exists := sc.activeSubs[topicURL]; !exists {
