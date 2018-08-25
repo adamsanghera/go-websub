@@ -1,0 +1,24 @@
+syntax='proto3';
+
+option go_package= "subscribepb";
+
+service SubscriberD {
+  // Commands
+  rpc Subscribe(Topic) returns (Empty);
+  rpc Unsubscribe(Topic) returns (Empty);
+  rpc AddTopic(Topic) returns (Empty);
+  
+  // Queries
+  rpc GetActiveSubscriptions(Empty) returns (Subscriptions);
+  rpc GetAllKnownTopics(Empty) returns (Subscriptions);
+}
+
+message Empty {}
+
+message Topic {
+  string URL = 1;
+}
+
+message Subscriptions {
+  repeated Topic Topics = 1;
+}
