@@ -21,13 +21,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var cfgFile string
-
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "ws-subscribe",
-	Short: "A cli tool for interacting with a go-websub subscription server",
-	Long:  "A cli tool for interacting with a go-websub subscription server",
+	Short: "A cli tool for controlling a go-websub subscription server",
+	Long:  "A cli tool for controlling a go-websub subscription server",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -37,4 +35,8 @@ func Execute() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func init() {
+	RootCmd.MarkPersistentFlagRequired("addr")
 }

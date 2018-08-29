@@ -4,7 +4,7 @@
 
 ## Description / Spec
 
-package subscribe is a Go client library that implements the [W3 Group's WebSub protocol](https://www.w3.org/TR/websub/), a broker-supported pub-sub architecture built on top of HTTP.
+package subscribe is a Go server library that implements the [W3 Group's WebSub protocol](https://www.w3.org/TR/websub/), a broker-supported pub-sub architecture built on top of HTTP.
 
 According to [the spec](https://www.w3.org/TR/websub/#subscriber) a Subscriber is a service that discovers hubs, and subscribes to topics.  More specifically, as described [here](https://www.w3.org/TR/websub/#conformance-classes), a Subscriber must conform to the following specs:
 
@@ -21,11 +21,11 @@ MAY:
   - MUST use the secret to verify the signature in the content delivery request
 - request that a subscription be deactivated with an unsubscribe mechanism
 
-This package implements the above requirements with the Client struct.
+This package implements the above requirements with the server struct.
 
 ## Lifecycle
 
-The client has three stages in its life cycle.
+The server has three stages in its life cycle.
 
 1. Birth
    - All data structures are initialized
@@ -45,7 +45,8 @@ The client has three stages in its life cycle.
 
 ## TODO's
 
-- Tests/Benchmarks that throttle parallelism (am pretty confident that this will work, but that efficiency can be improved)
+[x] Tests/Benchmarks that throttle parallelism (am pretty confident that this will work, but that efficiency can be improved)
+[ ] Refactor to use channels > mutexes
 
 ## Whims
 

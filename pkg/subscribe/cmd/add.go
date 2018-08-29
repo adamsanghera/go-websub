@@ -32,7 +32,7 @@ var addCmd = &cobra.Command{
 		}
 		for _, topic := range args {
 			// TODO(adam) Potentially make a call to the subscription
-			// client to see if the topics are already discovered or not
+			// server to see if the topics are already discovered or not
 			if _, err := url.ParseRequestURI(topic); err != nil {
 				return fmt.Errorf("'%s' is not a valid url", topic)
 			}
@@ -49,6 +49,5 @@ var addCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(addCmd)
-
 	// TODO(adam) add flags for async, etc
 }

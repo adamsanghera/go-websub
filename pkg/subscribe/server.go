@@ -1,5 +1,5 @@
 /*
-package subscribe is a Go Client that implements the W3 Group's
+Package subscribe is a Go Server that implements the W3 Group's
 WebSub protocol (https://www.w3.org/TR/websub/), a broker-supported pub-sub
 architecture built on top of HTTP.
 
@@ -13,8 +13,6 @@ import (
 	"net/http"
 	"sync"
 	"time"
-
-	"github.com/adamsanghera/go-websub/pkg/discovery"
 )
 
 // subscription represents an active subscription
@@ -46,11 +44,11 @@ type Server struct {
 	// TODO(adam) manage secrets per topic
 }
 
-// NewServer creates and returns a new subscription Client
+// NewServer creates and returns a new subscription Server
 // Callback needs to be formatted like http{s}://website.domain:{port}/endpoint
 func NewServer(port string) *Server {
-	// Create the Client
-	client := &Server{
+	// Create the Server
+	srv := &Server{
 		port: port,
 
 		topicsToHubs: make(map[string]map[string]struct{}),
@@ -69,21 +67,21 @@ func NewServer(port string) *Server {
 		callbackSrv: &http.Server{Addr: ":" + port},
 	}
 
-	client.callbackSrv.Handler = client.callbackMux
+	srv.callbackSrv.Handler = srv.callbackMux
 
-	client.callbackMux.HandleFunc("/callback/", client.CallbackSwitch)
 	// Handles all callbacks for subscriptions, unsubscriptions, etc.
+	srv.callbackMux.HandleFunc("/callback/", srv.CallbackSwitch)
 
 	go func() {
-		if err := client.callbackSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Callback Client crashed %v\n", err)
+		if err := srv.callbackSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Callback srv crashed %v\n", err)
 		}
 	}()
 
-	// Add some delay to give the Client time to spin up
+	// Add some delay to give the srv time to spin up
 	time.Sleep(1 * time.Millisecond)
 
-	return client
+	return srv
 }
 
 // GetHubsForTopic returns all hubs associated with a given topic
@@ -100,38 +98,11 @@ func (sc *Server) GetHubsForTopic(topic string) []string {
 	return hubs
 }
 
-// DiscoverTopic runs the common discovery algorithm, and compiles its results into the Client map
-func (sc *Server) DiscoverTopic(topic string) error {
-	hubs, self, err := discovery.DiscoverTopic(topic)
-
-	if err != nil {
-		return err
-	}
-
-	sc.tthMut.Lock()
-	defer sc.tthMut.Unlock()
-	sc.ttsMut.Lock()
-	defer sc.ttsMut.Unlock()
-
-	// Allocate the map if necessary
-	if _, ok := sc.topicsToHubs[topic]; !ok {
-		sc.topicsToHubs[topic] = make(map[string]struct{})
-	}
-
-	// Iterate through the results
-	for hub := range hubs {
-		sc.topicsToHubs[topic][hub] = struct{}{}
-	}
-	sc.topicsToSelf[topic] = self
-
-	return nil
-}
-
-// Shutdown is called to indicate that a Client is no longer going to be used.
-// It sends a shutdown signal to the Client's callback Client, freeing up the port to be used by another service.
+// Shutdown is called to indicate that a Server is no longer going to be used.
+// It sends a shutdown signal to the Server's callback Server, freeing up the port to be used by another service.
 func (sc *Server) Shutdown() {
 	if err := sc.callbackSrv.Shutdown(context.Background()); err != nil {
-		log.Fatalf("Failed to shutdown callback Client %v\n", err)
+		log.Fatalf("Failed to shutdown callback Server %v\n", err)
 	}
 
 	sc.aSubsMut.Lock()
