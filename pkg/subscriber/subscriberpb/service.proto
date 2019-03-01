@@ -1,0 +1,58 @@
+syntax="proto3";
+
+package subscriber.service;
+
+import "models.proto";
+
+option go_package= "subscriberpb";
+
+service Subscriber {
+  // Commands
+  rpc Subscribe(SubscribeRequest) returns (SubscribeResponse);
+  rpc Unsubscribe(UnsubscribeRequest) returns (UnsubscribeResponse);
+  rpc AddTopic(AddTopicRequest) returns (AddTopicResponse);
+  
+  // Queries
+  rpc GetActiveSubscriptions(GetActiveSubscriptionsRequest) returns (GetActiveSubscriptionsResponse);
+  rpc GetAllKnownTopics(GetAllKnownTopicsRequest) returns (GetAllKnownTopicsResponse);
+}
+
+message SubscribeRequest {
+  string Topic = 1;
+}
+
+message SubscribeResponse {
+
+}
+
+message UnsubscribeRequest {
+
+}
+
+message UnsubscribeResponse {
+
+}
+
+message AddTopicRequest {
+
+}
+
+message AddTopicResponse {
+
+}
+
+message GetActiveSubscriptionsRequest {
+
+}
+
+message GetActiveSubscriptionsResponse {
+
+}
+
+message GetAllKnownTopicsRequest {
+
+}
+
+message GetAllKnownTopicsResponse {
+
+}

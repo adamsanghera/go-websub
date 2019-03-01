@@ -1,4 +1,4 @@
-package subscribe
+package subscriber
 
 import (
 	"errors"
@@ -12,26 +12,25 @@ import (
 // If that topic has no associated url, returns an error
 // Handles redirect responses (307 and 308) gracefully
 // Gracefully passes any errors up
-func (sc *Server) unsubscribe(topic string) error {
-	sc.ttsMut.Lock()
+func (sc *Subscriber) unsubscribe(topic string) error {
 
-	// NOTE(adam): I'm not confident that this is how we want to get or store these urls
-	if topicURL, ok := sc.topicsToSelf[topic]; ok {
+	// TODO(adam) actually do this
+	// if topicURL, ok := sc.topicsToSelf[topic]; ok {
 
-		sc.ttsMut.Unlock() // It is ok if this state changes from underneath us
+	// 	sc.ttsMut.Unlock() // It is ok if this state changes from underneath us
 
-		callback := generateCallback()
-		req := buildUnsubscriptionRequest(callback, topicURL)
+	// 	callback := generateCallback()
+	// 	req := buildUnsubscriptionRequest(callback, topicURL)
 
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			panic(err)
-		}
+	// 	resp, err := http.DefaultClient.Do(req)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
 
-		return sc.processSubscriptionResponse(resp, topicURL, callback, true)
-	}
+	// 	return sc.processSubscriptionResponse(resp, topicURL, callback, true)
+	// }
 
-	sc.ttsMut.Unlock()
+	// sc.ttsMut.Unlock()
 	return errors.New("No URL known for the given topic")
 }
 

@@ -1,0 +1,27 @@
+syntax="proto3";
+
+package subscriber.models;
+
+option go_package= "subscriberpb";
+
+message Empty {}
+
+message Subscription {
+  string Callback = 1;
+  string Topic = 2;
+  string Hub = 3;
+  int64 LeaseExpiration = 4;
+  int64 LeaseInitiated = 5;
+  string InactiveReason = 6;
+}
+
+message Subscriptions {
+  repeated Subscription Subscriptions = 1;
+}
+
+enum SubscriptionCommand {
+  HubAccepted = 0;
+  HubDenied = 1;
+  HubAcceptedDeactivation = 2;
+  ClientDeactivate = 3;
+}
